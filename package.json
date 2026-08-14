@@ -1,6 +1,6 @@
 {
   "name": "dsh-mcp-manager",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "MCP 服务器管理器：在 DSH 设置页配置 MCP 服务器，宿主侧按配置热挂载/卸载 mcp-client 实例",
   "type": "module",
   "main": "index.js",
@@ -25,6 +25,15 @@
     "settings"
   ],
   "license": "MIT",
+  "author": "zhangxiang <zhangxiang@uphicoo.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fishlikewater/dsh-mcp-manager.git"
+  },
+  "homepage": "https://github.com/fishlikewater/dsh-mcp-manager#readme",
+  "bugs": {
+    "url": "https://github.com/fishlikewater/dsh-mcp-manager/issues"
+  },
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"

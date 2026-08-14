@@ -118,20 +118,28 @@ window.__ModuleLoader__.load({
     function ServerRow(props) {
       var server = props.server;
       var status = props.status;
+      var busy = props.toggling;
+      var enabled = server.enabled !== false;
+      var state = status && status.state;
       var transport = server.transport === 'streamable-http' ? 'HTTP' : 'stdio';
       var detail = server.transport === 'streamable-http'
         ? server.url
         : (server.command || '') + (server.args && server.args.length ? ' ' + server.args.join(' ') : '');
-      var dotStyle = status && status.state === 'error'
-        ? Object.assign({}, S.dot, { background: 'var(--dsw-alias-state-error-primary)' })
-        : Object.assign({}, S.dot, { background: 'var(--dsw-alias-state-success-primary)' });
+      var dotStyle = Object.assign({}, S.dot, {
+        background: state === 'error'
+          ? 'var(--dsw-alias-state-error-primary)'
+          : state === 'disabled'
+            ? 'var(--dsw-alias-label-disabled, var(--dsw-alias-label-tertiary))'
+            : 'var(--dsw-alias-state-success-primary)',
+      });
+      var statusText = state === 'error' ? '错误' : state === 'disabled' ? '已关闭' : '已挂载';
       return e('div', { style: S.card },
         e('div', { style: S.rowHead },
           e('span', { style: S.rowName }, server.serverName),
           e('span', { style: S.tag }, transport),
           e('span', { style: Object.assign({}, S.statusLine, { marginLeft: 'auto' }) },
             e('span', { style: dotStyle }),
-            status && status.state === 'error' ? '错误' : '已挂载',
+            statusText,
           ),
         ),
         e('div', { style: S.detail }, detail),
@@ -139,8 +147,13 @@ window.__ModuleLoader__.load({
           ? e('p', { style: S.error }, status.message)
           : null,
         e('div', { style: S.actions },
-          e('button', { style: S.buttonGhost, onClick: function () { props.onEdit(server); } }, '编辑'),
-          e('button', { style: S.buttonDanger, onClick: function () { props.onDelete(server); } }, '删除'),
+          e('button', {
+            style: enabled ? S.buttonGhost : S.button,
+            disabled: busy,
+            onClick: function () { props.onToggle(server); },
+          }, busy ? (enabled ? '关闭中…' : '开启中…') : (enabled ? '关闭' : '开启')),
+          e('button', { style: S.buttonGhost, disabled: busy, onClick: function () { props.onEdit(server); } }, '编辑'),
+          e('button', { style: S.buttonDanger, disabled: busy, onClick: function () { props.onDelete(server); } }, '删除'),
         ),
       );
     }
@@ -211,6 +224,7 @@ window.__ModuleLoader__.load({
             onClick: function () {
               var server = {
                 serverName: f.serverName.trim(),
+                enabled: initial.enabled !== false,
                 transport: f.transport,
                 command: f.command,
                 args: parseLines(f.args),
@@ -231,7 +245,7 @@ window.__ModuleLoader__.load({
     }
 
     function McpSection() {
-      var holder = useState({ servers: [], status: {}, loading: true, error: '', editing: null, saving: false, formError: '', notice: '' });
+      var holder = useState({ servers: [], status: {}, loading: true, error: '', editing: null, saving: false, formError: '', notice: '', toggling: null });
       var data = holder[0];
       var setData = holder[1];
 
@@ -277,11 +291,28 @@ window.__ModuleLoader__.load({
         });
       };
 
+      // 开启/关闭某台服务器：只翻转它的 enabled，其余配置原样提交。
+      var toggle = function (server) {
+        var enabling = server.enabled === false;
+        var next = data.servers.map(function (s) {
+          return s.serverName === server.serverName ? Object.assign({}, s, { enabled: enabling }) : s;
+        });
+        patch({ toggling: server.serverName, error: '', notice: '' });
+        saveServers(next).then(function () {
+          patch({ toggling: null, notice: (enabling ? '已开启 ' : '已关闭 ') + server.serverName });
+          load();
+        }).catch(function (err) {
+          patch({ toggling: null, error: String(err && err.message || err) });
+        });
+      };
+
       var cards = data.servers.map(function (server) {
         return e(ServerRow, {
           key: server.serverName,
           server: server,
           status: data.status[server.serverName],
+          toggling: data.toggling === server.serverName,
+          onToggle: toggle,
           onEdit: function (s) { patch({ editing: s, formError: '' }); },
           onDelete: remove,
         });
@@ -289,7 +320,7 @@ window.__ModuleLoader__.load({
 
       return e('div', { style: S.section },
         e('h2', { style: S.title }, 'MCP 服务器'),
-        e('p', { style: S.intro }, '在这里配置给我用的 MCP 服务器（Model Context Protocol）。保存后立即生效：我会拿到 mcp__<名称>__<工具名> 形式的工具。'),
+        e('p', { style: S.intro }, '在这里配置给我用的 MCP 服务器（Model Context Protocol）。保存后立即生效，每台服务器可单独「开启/关闭」：我会拿到 mcp__<名称>__<工具名> 形式的工具。'),
         data.error ? e('p', { style: S.error }, data.error) : null,
         data.notice ? e('p', { style: S.ok }, data.notice) : null,
         cards.length

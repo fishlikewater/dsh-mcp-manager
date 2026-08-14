@@ -6,6 +6,7 @@ mcp:
   servers:
     # stdio 示例：本地命令（把 command/args 换成你的服务器启动方式）
     - serverName: my-stdio-server
+      enabled: true
       transport: stdio
       command: npx
       args:
@@ -17,8 +18,9 @@ mcp:
       url: ''
       headers: {}
 
-    # streamable-http 示例：远程 URL
+    # streamable-http 示例：远程 URL（enabled: false 表示默认关闭）
     - serverName: my-http-server
+      enabled: false
       transport: streamable-http
       command: ''
       args: []

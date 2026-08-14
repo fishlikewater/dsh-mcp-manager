@@ -7,6 +7,7 @@ MCP 服务器管理器：给 [DeepSeek Harness](https://github.com/deepseek-ai/d
 ## 功能
 
 - 设置页管理：列出 / 新增 / 编辑 / 删除 MCP 服务器，带挂载状态
+- 每台服务器可单独开启/关闭（`enabled` 开关）：关闭立即停止实例并移除工具，开启重新挂载并注册工具，状态持久化
 - 两种传输：`stdio`（本地命令）与 `streamable-http`（远程 URL）
 - 配置持久化在 `settings.yaml` 的 `mcp` 命名空间（`mcp.servers`），改动热生效
 - 宿主侧按配置动态挂载 `@deepseek-ai/dsh-mcp-client` 实例（断线自动重连、工具自动注册/注销由它负责）
@@ -51,6 +52,8 @@ dsh --profile web --dump-config   # 应能看到 mcp-manager 行
 
 保存后立即生效；删除后对应工具立即移除。
 
+每张服务器卡片上的「关闭 / 开启」按钮会立即停止 / 启动对应实例：关闭后工具马上移除、不再重连；开启后重新挂载并注册工具。开关状态（`enabled`，默认 `true`）随配置一起持久化在 settings.yaml，重启 dsh 后保持；只影响被切换的那一台，其余服务器不受影响。
+
 ### 示例
 
 `examples/mcp-servers.example.yaml` 给出了 settings.yaml 中 `mcp` 命名空间的示例（stdio 与 streamable-http 各一）。可以直接把它合并进 `$DSH_HOME/settings.yaml` 作为初始配置，再从设置页调整。
@@ -59,7 +62,7 @@ dsh --profile web --dump-config   # 应能看到 mcp-manager 行
 
 | 方法 | 路径 | 说明 |
 |---|---|---|
-| GET | `/api/mcp/servers` | 返回 `{ servers, status }`，status 是 `serverName -> { state: 'ok'\|'error', message }` |
+| GET | `/api/mcp/servers` | 返回 `{ servers, status }`，status 是 `serverName -> { state: 'ok'\|'error'\|'disabled', message }` |
 | POST | `/api/mcp/servers` | 请求体 `{ servers: [...] }`，整体替换并触发重挂载；校验失败返回 400 `{ error }` |
 
 ## 开发
