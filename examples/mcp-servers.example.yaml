@@ -1,0 +1,29 @@
+# settings.yaml 中 `mcp` 命名空间的示例配置。
+# 可以把它合并进 $DSH_HOME/settings.yaml，再从「设置 → MCP 服务器」调整；
+# 也可以直接在设置页里新增（这里主要是展示文件里的结构）。
+
+mcp:
+  servers:
+    # stdio 示例：本地命令（把 command/args 换成你的服务器启动方式）
+    - serverName: my-stdio-server
+      transport: stdio
+      command: npx
+      args:
+        - '-y'
+        - '@some/mcp-server'
+      env:
+        SOME_TOKEN: 'your-token'
+      cwd: ''
+      url: ''
+      headers: {}
+
+    # streamable-http 示例：远程 URL
+    - serverName: my-http-server
+      transport: streamable-http
+      command: ''
+      args: []
+      env: {}
+      cwd: ''
+      url: http://localhost:3000/mcp
+      headers:
+        Authorization: 'Bearer your-token'

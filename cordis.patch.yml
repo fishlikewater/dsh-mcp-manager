@@ -1,0 +1,10 @@
+# dsh-mcp-manager bundle patch：在组合树中插入管理器行。
+# 宿主侧按 settings 命名空间 `mcp` 挂载 @deepseek-ai/dsh-mcp-client 实例，
+# 并在设置页注册「MCP 服务器」配置界面。配置持久化在 settings.yaml，
+# 改动即时热生效。
+#
+# 用户可以在自己的 profile cordis.patch.yml 里按 id 覆盖本行
+# （例如禁用：- id: mcp-manager  disabled: true）。
+- insert:
+    - id: mcp-manager
+      name: dsh-mcp-manager
