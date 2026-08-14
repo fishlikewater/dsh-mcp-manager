@@ -5,6 +5,7 @@
 #
 # 用户可以在自己的 profile cordis.patch.yml 里按 id 覆盖本行
 # （例如禁用：- id: mcp-manager  disabled: true）。
+# name 是 npm 包名（scoped 版；无 scope 的 dsh-mcp-manager 已被他人占用）。
 - insert:
     - id: mcp-manager
-      name: dsh-mcp-manager
+      name: '@fishlikewater/dsh-mcp-manager'

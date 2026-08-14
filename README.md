@@ -19,13 +19,13 @@ MCP 服务器管理器：给 [DeepSeek Harness](https://github.com/deepseek-ai/d
 
 ```sh
 # 从 npm 安装（发布后）
-dsh plugin --profile web add dsh-mcp-manager
+dsh plugin --profile web add @fishlikewater/dsh-mcp-manager
 
 # 或从本地 checkout 安装
 dsh plugin --profile web add ./path/to/dsh-mcp-manager
 ```
 
-`dsh plugin add` 会把包安装进 profile 的依赖，并因为本包声明了 `dsh.bundle`，自动把 `dsh-mcp-manager` 追加到该 profile 的 `dsh.profile.bundles`（即应用本包的 `cordis.patch.yml` 层）。验证组合树：
+`dsh plugin add` 会把包安装进 profile 的依赖，并因为本包声明了 `dsh.bundle`，自动把 `@fishlikewater/dsh-mcp-manager` 追加到该 profile 的 `dsh.profile.bundles`（即应用本包的 `cordis.patch.yml` 层）。验证组合树：
 
 ```sh
 dsh --profile web --dump-config   # 应能看到 mcp-manager 行
@@ -33,7 +33,7 @@ dsh --profile web --dump-config   # 应能看到 mcp-manager 行
 
 **重启 dsh 进程后生效**（bundle 层在启动时组合；插件代码改动也需要重启，见下文「开发」）。重启后刷新浏览器页面，打开 设置 → MCP 服务器 即可。
 
-卸载：`dsh plugin --profile web remove dsh-mcp-manager`（同时移除依赖与 bundle 层）。
+卸载：`dsh plugin --profile web remove @fishlikewater/dsh-mcp-manager`（同时移除依赖与 bundle 层）。
 
 ## 使用
 
@@ -90,7 +90,7 @@ dsh --profile web --dump-config   # 应能看到 mcp-manager 行
 npm publish
 ```
 
-（首次发布前确认包名 `dsh-mcp-manager` 未被占用；如需 scope 版，改名并同步修改 `cordis.patch.yml` 里的 `name` 行。）
+> 包名使用 scope 版 `@fishlikewater/dsh-mcp-manager`：无 scope 的 `dsh-mcp-manager` 已被他人占用（github.com/Nichts0v0/dsh-mcp-manager）。发布者的 npm 账号必须是 `fishlikewater`（scope 归属），`publishConfig.access: public` 已配置，无需 `--access public`。改包名时需同步修改 `cordis.patch.yml` 里的 `name` 行。
 
 ## License
 

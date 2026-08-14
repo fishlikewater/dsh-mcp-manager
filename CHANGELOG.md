@@ -5,6 +5,7 @@
 - 每台 MCP 服务器可单独开启/关闭：卡片上的开关按钮立即挂载/卸载对应实例，其余服务器不受影响
 - 开关状态持久化在 `mcp.servers[].enabled`（默认 `true`），重启 dsh 后保持
 - 挂载状态新增 `disabled`（已关闭）；实例按配置差异重建，未变化的服务器不再重连
+- 包名改为 scoped 版 `@fishlikewater/dsh-mcp-manager`（无 scope 的 `dsh-mcp-manager` 已被他人占用），`cordis.patch.yml` 的 `name` 同步更新
 
 ## 0.1.0
 
