@@ -25,3 +25,14 @@ jobs:
         run: npm install --no-save --no-package-lock @deepseek-ai/dsh-mcp-client@${{ matrix.mcp-client }}
       - name: Run tests
         run: npm test
+
+  pack:
+    name: npm pack 校验（发布内容白名单）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: node scripts/check-pack.mjs

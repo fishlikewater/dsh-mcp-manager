@@ -9,6 +9,10 @@ MCP 服务器管理器：给 [DeepSeek Harness](https://github.com/deepseek-ai/d
 - 设置页管理：列出 / 新增 / 编辑 / 删除 MCP 服务器，带挂载状态
 - 每台服务器可单独开启/关闭（`enabled` 开关）：关闭立即停止实例并移除工具，开启重新挂载并注册工具，状态持久化
 - 两种传输：`stdio`（本地命令）与 `streamable-http`（远程 URL）
+- **真实挂载状态**：连接失败、重连中、重连成功、放弃重连等异步事件实时反映到设置页（截获 mcp-client 日志驱动），不再只显示乐观的「已挂载」
+- **并发保存保护**：GET/POST 携带 `rev` 修订号（乐观锁），配置被其他窗口改过时返回 409 并提示刷新，避免静默覆盖
+- 每台服务器可配置 `toolCallTimeoutMs`（工具调用超时）与 `failOnStartupError`（启动失败即报错）
+- **密钥不入盘**：env / headers 的值支持 `env:NAME`（进程环境变量）与 `cred:NAME`（DSH 凭据）引用，挂载时解析，settings.yaml 只存引用
 - 配置持久化在 `settings.yaml` 的 `mcp` 命名空间（`mcp.servers`），改动热生效
 - 宿主侧按配置动态挂载 `@deepseek-ai/dsh-mcp-client` 实例（断线自动重连、工具自动注册/注销由它负责）
 - headless profile 也能用：没有 `webServer` 服务时跳过 HTTP 接口，只做实例管理
@@ -45,10 +49,12 @@ dsh --profile web --dump-config   # 应能看到 mcp-manager 行
 | 传输方式 | 两者 | `stdio` / `streamable-http` |
 | 命令（command） | stdio | 可执行文件（支持绝对路径）或 `npx` 之类命令 |
 | 参数（args） | stdio | 每行一个 |
-| 环境变量（env） | stdio | 每行 `KEY=VALUE` |
+| 环境变量（env） | stdio | 每行 `KEY=VALUE`；值支持 `env:NAME` / `cred:NAME` 引用 |
 | 工作目录（cwd） | stdio | 可选 |
 | URL | http | 如 `http://localhost:3000/mcp` |
-| 请求头（headers） | http | 每行 `KEY: VALUE` |
+| 请求头（headers） | http | 每行 `KEY: VALUE`；值支持 `env:NAME` / `cred:NAME` 引用 |
+| 工具调用超时（toolCallTimeoutMs） | 两者 | 毫秒，默认 60000 |
+| 启动失败即报错（failOnStartupError） | 两者 | 是否在首次连接/工具同步失败时报错（默认否，自动重连） |
 
 保存后立即生效；删除后对应工具立即移除。
 
@@ -62,8 +68,10 @@ dsh --profile web --dump-config   # 应能看到 mcp-manager 行
 
 | 方法 | 路径 | 说明 |
 |---|---|---|
-| GET | `/api/mcp/servers` | 返回 `{ servers, status }`，status 是 `serverName -> { state: 'ok'\|'error'\|'disabled', message }` |
-| POST | `/api/mcp/servers` | 请求体 `{ servers: [...] }`，整体替换并触发重挂载；校验失败返回 400 `{ error }` |
+| GET | `/api/mcp/servers` | 返回 `{ rev, servers, status }`；`rev` 是命名空间修订号（乐观锁），`status` 是 `serverName -> { state: 'ok'\|'error'\|'disabled', message }` |
+| POST | `/api/mcp/servers` | 请求体 `{ rev?, servers: [...] }`，整体替换并触发重挂载；`rev` 与当前修订不符返回 409 `{ code: 'conflict', rev }`；校验失败返回 400 `{ error }` |
+
+密钥引用（`env:NAME` / `cred:NAME`）在挂载时解析：`env:` 读进程环境变量；`cred:` 经 DSH 的 `credentials` 服务解析（`resolve`），服务不可用或未配置时保留字面值并打日志。settings.yaml 里始终只存引用文本。
 
 ## 开发
 
@@ -73,11 +81,13 @@ dsh --profile web --dump-config   # 应能看到 mcp-manager 行
 ├── package.json       # dsh.bundle.patch + dsh.client 双 manifest
 ├── cordis.patch.yml   # bundle 层：插入 mcp-manager 行
 ├── index.js           # 宿主侧：settings 注册 + 实例挂载 + HTTP 接口
-├── lib/logic.js       # 纯逻辑：settings schema、校验、mcp-client 配置构造、配置指纹
+├── lib/logic.js       # 纯逻辑：settings schema、校验、配置构造、指纹、日志翻译、密钥引用
 ├── client.js          # 客户端 bundle（手写 CJS factory，经 ./client 导出）
 ├── test/              # node:test 套件（见下）
+├── fixtures/          # E2E 用的极简 stdio MCP 服务器（不打包、不被当作测试执行）
+├── scripts/           # 发布前 pack 校验等
 ├── examples/
-└── .github/workflows/ # CI：Node × dsh-mcp-client 版本矩阵
+└── .github/workflows/ # CI：Node × dsh-mcp-client 版本矩阵 + pack 校验
 ```
 
 注意：
@@ -91,11 +101,12 @@ dsh --profile web --dump-config   # 应能看到 mcp-manager 行
 
 `npm test`（node:test，无需额外框架）：
 
-- `test/host-logic.test.js`：settings 命名空间 schema、HTTP 校验、mcp-client 配置构造、配置指纹
+- `test/host-logic.test.js`：settings 命名空间 schema、HTTP 校验、mcp-client 配置构造、配置指纹、mcp-client 日志 → 状态翻译（用真实日志文案做夹具）、密钥引用解析
 - `test/client-logic.test.js`：把 `client.js` 加载进 vm 沙箱，测解析/组装助手，以及「客户端表单产出 → 宿主校验」的往返契约
 - `test/contract.test.js`：用真实的 `@deepseek-ai/dsh-mcp-client` `Config` schema 校验 `buildClientConfig` 的产出——它两边的配置契约一旦偏离，测试先红
+- `test/e2e.test.js`：端到端冒烟——内存 Cordis 上下文 + 假 settings/tools/webServer 服务 + 极简 stdio MCP 服务器（`fixtures/fake-mcp-server.mjs`），走真实 HTTP 验证「保存即生效」全链路（挂载、工具注册、真实失败状态、rev 409、开关、引用）
 
-CI（`.github/workflows/ci.yml`）跑 3 个 Node（18/20/22）× 3 个已发布的 `dsh-mcp-client`（`0.1.0-rc.6` / `0.1.0-rc.8` / `0.1.1-rc.2`）矩阵。
+CI（`.github/workflows/ci.yml`）跑 3 个 Node（18/20/22）× 3 个已发布的 `dsh-mcp-client`（`0.1.0-rc.6` / `0.1.0-rc.8` / `0.1.1-rc.2`）矩阵，另有 pack job 校验发布内容白名单（`node scripts/check-pack.mjs`，npm publish 前由 `prepublishOnly` 自动执行）。
 
 ## 发布
 

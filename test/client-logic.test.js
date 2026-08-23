@@ -107,6 +107,7 @@ describe('buildServerObject（表单 → 服务器对象）', () => {
   const form = () => ({
     serverName: '  my-srv  ', transport: 'stdio', command: 'npx',
     args: '-y\npkg', env: 'A=1\nB=2', cwd: ' /tmp ', url: '', headers: '',
+    toolCallTimeoutMs: '30000', failOnStartupError: 'true',
   });
 
   it('trim serverName/cwd/url，不做 command；enabled 默认 true（新建）', () => {
@@ -119,6 +120,17 @@ describe('buildServerObject（表单 → 服务器对象）', () => {
     assert.deepEqual(host(server.env), { A: '1', B: '2' });
   });
 
+  it('新增可配置项：toolCallTimeoutMs 转数字、failOnStartupError 字符串转布尔', () => {
+    const server = client.buildServerObject(form(), {});
+    assert.equal(server.toolCallTimeoutMs, 30000);
+    assert.equal(server.failOnStartupError, true);
+    // 空字符串 → Number('') === 0 → 交给宿主校验拒绝（>= 1）
+    const relaxed = client.buildServerObject({ ...form(), toolCallTimeoutMs: '', failOnStartupError: 'false' }, {});
+    assert.equal(relaxed.toolCallTimeoutMs, 0);
+    assert.equal(relaxed.failOnStartupError, false);
+    assert.match(validateServers([relaxed]), /toolCallTimeoutMs/);
+  });
+
   it('编辑时保留原 enabled（关闭中的服务器保存后仍关闭）', () => {
     const server = client.buildServerObject(form(), { enabled: false });
     assert.equal(server.enabled, false);
@@ -126,14 +138,18 @@ describe('buildServerObject（表单 → 服务器对象）', () => {
 });
 
 describe('客户端 → 宿主往返契约', () => {
+  const form = (overrides = {}) => ({
+    serverName: 'local', transport: 'stdio', command: 'npx',
+    args: '-y\npkg', env: 'TOKEN=abc', cwd: '/work', url: '', headers: '',
+    toolCallTimeoutMs: '60000', failOnStartupError: 'false', ...overrides,
+  });
+
   it('表单产出的 stdio/http 服务器都能通过宿主校验并构造 mcp-client 配置', () => {
-    const stdio = client.buildServerObject({
-      serverName: 'local', transport: 'stdio', command: 'npx',
-      args: '-y\npkg', env: 'TOKEN=abc', cwd: '/work', url: '', headers: '',
-    }, {});
+    const stdio = client.buildServerObject(form(), {});
     const http = client.buildServerObject({
       serverName: 'remote', transport: 'streamable-http', url: '  http://localhost:3000/mcp  ',
       headers: 'Authorization: Bearer t', command: '', args: '', env: '', cwd: '',
+      toolCallTimeoutMs: '60000', failOnStartupError: 'false',
     }, {});
     assert.equal(validateServers([stdio, http]), null);
     assert.equal(buildClientConfig(stdio).command, 'npx');
@@ -141,10 +157,12 @@ describe('客户端 → 宿主往返契约', () => {
   });
 
   it('漏填必填字段的客户端产物被宿主侧拒绝（信息一致）', () => {
-    const broken = client.buildServerObject({
-      serverName: 'local', transport: 'stdio', command: '  ',
-      args: '', env: '', cwd: '', url: '', headers: '',
-    }, {});
+    const broken = client.buildServerObject(form({ command: '  ' }), {});
     assert.match(validateServers([broken]), /必须提供 command/);
+  });
+
+  it('非法超时的客户端产物被宿主侧拒绝', () => {
+    const broken = client.buildServerObject(form({ toolCallTimeoutMs: '-5' }), {});
+    assert.match(validateServers([broken]), /toolCallTimeoutMs/);
   });
 });

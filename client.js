@@ -106,6 +106,8 @@ window.__ModuleLoader__.load({
         cwd: f.cwd.trim(),
         url: f.url.trim(),
         headers: parseHeaders(f.headers),
+        toolCallTimeoutMs: Number(f.toolCallTimeoutMs),
+        failOnStartupError: f.failOnStartupError === true || f.failOnStartupError === 'true',
       };
     }
 
@@ -118,17 +120,37 @@ window.__ModuleLoader__.load({
       });
     }
 
-    function saveServers(servers) {
+    // rev 是宿主返回的修订号（乐观锁）：提交时带回，若配置已被其他窗口
+    // 改过，宿主返回 409（code: conflict），由调用方刷新并提示。
+    function saveServers(servers, rev) {
       return fetch(API, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ servers: servers }),
+        body: JSON.stringify({ rev: rev, servers: servers }),
       }).then(function (res) {
         return res.json().then(function (data) {
-          if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+          var err = new Error(data.error || ('HTTP ' + res.status));
+          err.status = res.status;
+          err.code = data.code;
+          err.rev = data.rev;
+          if (!res.ok) throw err;
           return data;
         });
       });
+    }
+
+    // ── 导航图标自检 ────────────────────────────────────────────────────────
+    // 图标覆盖依赖外壳的类名哈希（VOzbGW_*），DSH 升级后可能静默失效。
+    // 在设置页真正渲染时检查一次：导航列表存在而目标图标选择器未命中，
+    // 说明外壳结构已变 → 打一条警告（功能不受影响，只是退回默认齿轮图标）。
+    function inspectNavIcon() {
+      try {
+        var navList = document.querySelector('.VOzbGW_navList');
+        if (!navList) return; // 外壳导航还没渲染：不判断，避免误报
+        var hit = document.querySelector('.VOzbGW_navList .VOzbGW_navCell:last-child .VOzbGW_navIcon');
+        if (hit) return;
+        console.warn('[dsh-mcp-manager] 设置页导航图标覆盖未命中：DSH 外壳类名（.VOzbGW_*）可能已变化，已退回默认图标（功能不受影响）');
+      } catch (error) { /* 自检失败不影响功能 */ }
     }
 
     // ── components ──────────────────────────────────────────────────────────
@@ -186,6 +208,8 @@ window.__ModuleLoader__.load({
         cwd: initial.cwd || '',
         url: initial.url || '',
         headers: joinEntries(initial.headers || {}),
+        toolCallTimeoutMs: String(initial.toolCallTimeoutMs || 60000),
+        failOnStartupError: String(initial.failOnStartupError === true),
       });
       var f = holder[0];
       var setF = holder[1];
@@ -233,6 +257,17 @@ window.__ModuleLoader__.load({
           e('span', { style: S.label }, '请求头（headers，每行 KEY: VALUE）'),
           e('textarea', { style: S.textarea, value: f.headers, onChange: set('headers') }),
         ),
+        e('div', { style: S.field },
+          e('span', { style: S.label }, '工具调用超时（toolCallTimeoutMs，毫秒）'),
+          e('input', { style: S.input, type: 'number', min: 1, value: f.toolCallTimeoutMs, onChange: set('toolCallTimeoutMs') }),
+        ),
+        e('div', { style: S.field },
+          e('span', { style: S.label }, '启动失败即报错（failOnStartupError）'),
+          e('select', { style: S.input, value: f.failOnStartupError, onChange: set('failOnStartupError') },
+            e('option', { value: 'false' }, '否（连接失败自动重连）'),
+            e('option', { value: 'true' }, '是（首次连接/工具同步失败时报错）'),
+          ),
+        ),
         props.error ? e('p', { style: S.error }, props.error) : null,
         e('div', { style: S.actions },
           e('button', {
@@ -243,6 +278,7 @@ window.__ModuleLoader__.load({
               if (!server.serverName) return props.onError('名称不能为空');
               if (f.transport === 'stdio' && !server.command.trim()) return props.onError('stdio 传输必须填写命令');
               if (f.transport === 'streamable-http' && !server.url) return props.onError('streamable-http 必须填写 URL');
+              if (!f.toolCallTimeoutMs || !(Number(f.toolCallTimeoutMs) >= 1)) return props.onError('超时必须是 >= 1 的数字（毫秒）');
               props.onSave(server);
             },
           }, props.saving ? '保存中…' : '保存'),
@@ -252,7 +288,7 @@ window.__ModuleLoader__.load({
     }
 
     function McpSection() {
-      var holder = useState({ servers: [], status: {}, loading: true, error: '', editing: null, saving: false, formError: '', notice: '', toggling: null });
+      var holder = useState({ servers: [], status: {}, rev: 0, loading: true, error: '', editing: null, saving: false, formError: '', notice: '', toggling: null });
       var data = holder[0];
       var setData = holder[1];
 
@@ -262,13 +298,19 @@ window.__ModuleLoader__.load({
 
       var load = function () {
         loadServers().then(function (d) {
-          patch({ servers: d.servers || [], status: d.status || {}, loading: false, error: '' });
+          patch({ rev: d.rev || 0, servers: d.servers || [], status: d.status || {}, loading: false, error: '' });
         }).catch(function (err) {
           patch({ loading: false, error: String(err && err.message || err) });
         });
       };
 
       useEffect(load, []);
+
+      // 乐观锁冲突（409）：别的窗口/页面改过配置，刷新后再让用户确认。
+      var onConflict = function () {
+        patch({ notice: '配置已被其他窗口/页面修改，已刷新，请核对后再保存', error: '', formError: '' });
+        load();
+      };
 
       var save = function (server) {
         var next;
@@ -279,10 +321,11 @@ window.__ModuleLoader__.load({
           next = data.servers.map(function (s) { return s.serverName === target ? server : s; });
         }
         patch({ saving: true, formError: '' });
-        saveServers(next).then(function () {
+        saveServers(next, data.rev).then(function () {
           patch({ saving: false, editing: null, notice: '已保存并生效' });
           load();
         }).catch(function (err) {
+          if (err && err.code === 'conflict') { patch({ saving: false, formError: '' }); onConflict(); return; }
           patch({ saving: false, formError: String(err && err.message || err) });
         });
       };
@@ -290,10 +333,11 @@ window.__ModuleLoader__.load({
       var remove = function (server) {
         if (!window.confirm('删除 MCP 服务器 ' + server.serverName + '？相关工具会立即移除。')) return;
         var next = data.servers.filter(function (s) { return s.serverName !== server.serverName; });
-        saveServers(next).then(function () {
+        saveServers(next, data.rev).then(function () {
           patch({ notice: '已删除 ' + server.serverName });
           load();
         }).catch(function (err) {
+          if (err && err.code === 'conflict') { onConflict(); return; }
           patch({ error: String(err && err.message || err) });
         });
       };
@@ -305,11 +349,13 @@ window.__ModuleLoader__.load({
           return s.serverName === server.serverName ? Object.assign({}, s, { enabled: enabling }) : s;
         });
         patch({ toggling: server.serverName, error: '', notice: '' });
-        saveServers(next).then(function () {
+        saveServers(next, data.rev).then(function () {
           patch({ toggling: null, notice: (enabling ? '已开启 ' : '已关闭 ') + server.serverName });
           load();
         }).catch(function (err) {
-          patch({ toggling: null, error: String(err && err.message || err) });
+          patch({ toggling: null });
+          if (err && err.code === 'conflict') { onConflict(); return; }
+          patch({ error: String(err && err.message || err) });
         });
       };
 
@@ -352,6 +398,12 @@ window.__ModuleLoader__.load({
 
     // ── plugin ──────────────────────────────────────────────────────────────
     var inject = ['slots'];
+    // 包装一层：设置页真正渲染时做一次导航图标覆盖的自检（外壳类名哈希
+    // 变更时打警告，功能不受影响）。
+    function IconCheckedSection(props) {
+      useEffect(inspectNavIcon, []);
+      return e(McpSection, props);
+    }
     function apply(ctx) {
       var navIconStyle = injectNavIconCss();
       ctx.effect(function () { return function () { navIconStyle.remove(); }; });
@@ -361,7 +413,7 @@ window.__ModuleLoader__.load({
           id: 'mcp',
           order: 30,
           label: function () { return 'MCP 服务器'; },
-        }, McpSection);
+        }, IconCheckedSection);
       });
     }
     // 导出解析/组装助手：浏览器加载器只消费 apply/inject，多出的导出仅用于
@@ -373,6 +425,7 @@ window.__ModuleLoader__.load({
     exports.parseHeaders = parseHeaders;
     exports.joinEntries = joinEntries;
     exports.buildServerObject = buildServerObject;
+    exports.inspectNavIcon = inspectNavIcon;
     return module.exports;
   },
 });
