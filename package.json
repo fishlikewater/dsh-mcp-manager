@@ -1,9 +1,12 @@
 {
   "name": "@fishlikewater/dsh-mcp-manager",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "MCP 服务器管理器：在 DSH 设置页配置 MCP 服务器，宿主侧按配置热挂载/卸载 mcp-client 实例",
   "type": "module",
   "main": "index.js",
+  "engines": {
+    "node": ">=18"
+  },
   "publishConfig": {
     "access": "public"
   },
@@ -15,6 +18,7 @@
   "files": [
     "index.js",
     "client.js",
+    "lib/",
     "cordis.patch.yml",
     "README.md",
     "LICENSE"
@@ -28,7 +32,7 @@
     "settings"
   ],
   "license": "MIT",
-  "author": "zhangxiang <zhangxiang@uphicoo.com>",
+  "author": "zhangxiang <fishlijewater@126.com>",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/fishlikewater/dsh-mcp-manager.git"
@@ -52,5 +56,11 @@
   },
   "dependencies": {
     "@deepseek-ai/schemastery": "^3.18.1"
+  },
+  "devDependencies": {
+    "@deepseek-ai/dsh-mcp-client": ">=0.1.0-rc.6 <0.2.0"
+  },
+  "scripts": {
+    "test": "node --test"
   }
 }

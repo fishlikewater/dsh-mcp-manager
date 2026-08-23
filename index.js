@@ -14,81 +14,15 @@
 // 实例通过 ctx.plugin() 挂载并持有 disposer，配置变化时按差异重建
 // （dsh-mcp-client 自身处理断开重连与工具注册/注销）。
 
-import Schema from '@deepseek-ai/schemastery';
 import * as McpClient from '@deepseek-ai/dsh-mcp-client';
+import { ServersSchema, buildClientConfig, serverKey, validateServers } from './lib/logic.js';
 
 export const name = 'dsh-mcp-manager';
 export const inject = ['settings'];
 
-const SERVER_NAME_PATTERN = /^[A-Za-z0-9_-]{1,32}$/;
 const MAX_BODY_BYTES = 1024 * 1024;
 
-// settings 命名空间 `mcp` 的 schema。settings 的每个命名空间必须是
-// 「键组成的对象」，所以服务器列表包在 `servers` 键下；字段全部带默认值，
-// transport 相关的必填性（stdio 要 command / http 要 url）在 HTTP 接口里做
-// 明确校验。
-const ServerSchema = Schema.object({
-  serverName: Schema.string().pattern(SERVER_NAME_PATTERN),
-  enabled: Schema.boolean().default(true),
-  transport: Schema.union(['stdio', 'streamable-http']),
-  command: Schema.string().default(''),
-  args: Schema.array(Schema.string()).default([]),
-  env: Schema.dict(Schema.string()).default({}),
-  cwd: Schema.string().default(''),
-  url: Schema.string().default(''),
-  headers: Schema.dict(Schema.string()).default({}),
-});
-
-const ServersSchema = Schema.object({
-  servers: Schema.array(ServerSchema).default([]),
-});
-
-function buildClientConfig(server) {
-  const config = {
-    serverName: server.serverName,
-    transport: server.transport,
-    toolCallTimeoutMs: 60000,
-    failOnStartupError: false,
-  };
-  if (server.transport === 'stdio') {
-    config.command = server.command;
-    config.args = Array.isArray(server.args) ? server.args : [];
-    config.env = server.env && typeof server.env === 'object' ? server.env : {};
-    if (server.cwd) config.cwd = server.cwd;
-  } else {
-    config.url = server.url;
-    config.headers = server.headers && typeof server.headers === 'object' ? server.headers : {};
-  }
-  return config;
-}
-
-function validateServers(servers) {
-  if (!Array.isArray(servers)) return 'servers 必须是数组';
-  const seen = new Set();
-  for (const server of servers) {
-    if (!server || typeof server !== 'object') return '每个服务器必须是一个对象';
-    if (typeof server.serverName !== 'string' || !SERVER_NAME_PATTERN.test(server.serverName)) {
-      return `serverName 无效：应为 1-32 位字母数字下划线连字符，收到 ${JSON.stringify(server.serverName)}`;
-    }
-    if (seen.has(server.serverName)) return `serverName 重复：${server.serverName}`;
-    seen.add(server.serverName);
-    if (server.enabled !== undefined && server.enabled !== null && typeof server.enabled !== 'boolean') {
-      return `enabled 必须是布尔值：${JSON.stringify(server.enabled)}`;
-    }
-    if (server.transport === 'stdio') {
-      if (typeof server.command !== 'string' || server.command.trim() === '') {
-        return `stdio 服务器 ${server.serverName} 必须提供 command`;
-      }
-    } else if (server.transport === 'streamable-http') {
-      if (typeof server.url !== 'string' || server.url.trim() === '') {
-        return `streamable-http 服务器 ${server.serverName} 必须提供 url`;
-      }
-    } else {
-      return `transport 无效：${JSON.stringify(server.transport)}（应为 stdio 或 streamable-http）`;
-    }
-  }
-  return null;
-}
+// settings 命名空间 `mcp` 的 schema 与实例配置/校验纯逻辑见 ./lib/logic.js。
 
 function readBody(req) {
   return new Promise((resolve, reject) => {
@@ -117,20 +51,6 @@ export function apply(ctx) {
   const handleKeys = new Map();
   // serverName -> { state: 'ok' | 'error' | 'disabled', message: string }
   const mountState = new Map();
-
-  // 配置指纹：字段都列出来，忽略键顺序外的噪声；enabled 参与比较，
-  // 这样开关切换会被识别为「配置变化」。
-  const serverKey = (server) => JSON.stringify({
-    serverName: server.serverName,
-    enabled: server.enabled !== false,
-    transport: server.transport,
-    command: server.command,
-    args: server.args,
-    env: server.env,
-    cwd: server.cwd,
-    url: server.url,
-    headers: server.headers,
-  });
 
   const unmountOne = (serverName) => {
     const handle = handles.get(serverName);

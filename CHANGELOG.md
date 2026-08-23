@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.1
+
+- 作者邮箱更新为 fishlijewater@126.com，package.json 增加 `engines.node >= 18`
+- 新增兼容性测试套件（`npm test`，node:test 零依赖）：宿主纯逻辑单测、客户端 bundle vm 沙箱测试、以及用真实 `@deepseek-ai/dsh-mcp-client` Config schema 校验配置产出的契约测试
+- 新增 CI（GitHub Actions）：Node 18/20/22 × dsh-mcp-client 0.1.0-rc.6 / 0.1.0-rc.8 / 0.1.1-rc.2 版本矩阵
+- 纯逻辑抽到 `lib/logic.js`（settings schema、校验、配置构造、配置指纹），`client.js` 导出解析/组装助手供测试复用，行为不变
+
 ## 0.2.0
 
 - 每台 MCP 服务器可单独开启/关闭：卡片上的开关按钮立即挂载/卸载对应实例，其余服务器不受影响

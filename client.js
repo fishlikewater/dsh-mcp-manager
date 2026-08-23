@@ -92,6 +92,23 @@ window.__ModuleLoader__.load({
       return out.join('\n');
     }
 
+    // 把表单状态组装成与宿主侧约定一致的服务器对象（见 lib/logic.js 的
+    // validateServers）。与宿主校验一一对应，测试里做「客户端产出 →
+    // 宿主校验」的往返兼容断言。
+    function buildServerObject(f, initial) {
+      return {
+        serverName: f.serverName.trim(),
+        enabled: initial.enabled !== false,
+        transport: f.transport,
+        command: f.command,
+        args: parseLines(f.args),
+        env: parseEnv(f.env),
+        cwd: f.cwd.trim(),
+        url: f.url.trim(),
+        headers: parseHeaders(f.headers),
+      };
+    }
+
     function loadServers() {
       return fetch(API, { method: 'GET' }).then(function (res) {
         return res.json().then(function (data) {
@@ -222,17 +239,7 @@ window.__ModuleLoader__.load({
             style: S.button,
             disabled: props.saving,
             onClick: function () {
-              var server = {
-                serverName: f.serverName.trim(),
-                enabled: initial.enabled !== false,
-                transport: f.transport,
-                command: f.command,
-                args: parseLines(f.args),
-                env: parseEnv(f.env),
-                cwd: f.cwd.trim(),
-                url: f.url.trim(),
-                headers: parseHeaders(f.headers),
-              };
+              var server = buildServerObject(f, initial);
               if (!server.serverName) return props.onError('名称不能为空');
               if (f.transport === 'stdio' && !server.command.trim()) return props.onError('stdio 传输必须填写命令');
               if (f.transport === 'streamable-http' && !server.url) return props.onError('streamable-http 必须填写 URL');
@@ -357,8 +364,15 @@ window.__ModuleLoader__.load({
         }, McpSection);
       });
     }
+    // 导出解析/组装助手：浏览器加载器只消费 apply/inject，多出的导出仅用于
+    // node:test 对客户端逻辑做兼容性测试（test/client-logic.test.js）。
     exports.apply = apply;
     exports.inject = inject;
+    exports.parseLines = parseLines;
+    exports.parseEnv = parseEnv;
+    exports.parseHeaders = parseHeaders;
+    exports.joinEntries = joinEntries;
+    exports.buildServerObject = buildServerObject;
     return module.exports;
   },
 });

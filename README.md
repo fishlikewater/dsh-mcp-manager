@@ -73,8 +73,11 @@ dsh --profile web --dump-config   # 应能看到 mcp-manager 行
 ├── package.json       # dsh.bundle.patch + dsh.client 双 manifest
 ├── cordis.patch.yml   # bundle 层：插入 mcp-manager 行
 ├── index.js           # 宿主侧：settings 注册 + 实例挂载 + HTTP 接口
+├── lib/logic.js       # 纯逻辑：settings schema、校验、mcp-client 配置构造、配置指纹
 ├── client.js          # 客户端 bundle（手写 CJS factory，经 ./client 导出）
-└── examples/
+├── test/              # node:test 套件（见下）
+├── examples/
+└── .github/workflows/ # CI：Node × dsh-mcp-client 版本矩阵
 ```
 
 注意：
@@ -83,6 +86,16 @@ dsh --profile web --dump-config   # 应能看到 mcp-manager 行
 - `client.js` 是给浏览器模块加载器的构建产物（`window.__ModuleLoader__.load` 格式），直接手写维护，不需要打包器。
 - 设置页导航图标：外壳按 section id 硬编码图标且没有注册点，本插件用一小段 CSS 覆盖把「MCP 服务器」行的图标换成链接图标；选择器依赖外壳的类名哈希（`VOzbGW_*`），DSH 升级后若失效只会安静地退回默认齿轮图标，不影响功能。
 - `@deepseek-ai/dsh-mcp-client` 以 peerDependency 声明，由运行时提供；`@deepseek-ai/schemastery` 为普通依赖。
+
+### 测试（兼容性）
+
+`npm test`（node:test，无需额外框架）：
+
+- `test/host-logic.test.js`：settings 命名空间 schema、HTTP 校验、mcp-client 配置构造、配置指纹
+- `test/client-logic.test.js`：把 `client.js` 加载进 vm 沙箱，测解析/组装助手，以及「客户端表单产出 → 宿主校验」的往返契约
+- `test/contract.test.js`：用真实的 `@deepseek-ai/dsh-mcp-client` `Config` schema 校验 `buildClientConfig` 的产出——它两边的配置契约一旦偏离，测试先红
+
+CI（`.github/workflows/ci.yml`）跑 3 个 Node（18/20/22）× 3 个已发布的 `dsh-mcp-client`（`0.1.0-rc.6` / `0.1.0-rc.8` / `0.1.1-rc.2`）矩阵。
 
 ## 发布
 
