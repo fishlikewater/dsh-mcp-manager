@@ -2,6 +2,19 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## 0.3.4 - 2026-09-28
+
+### 新增
+
+- 密钥引用。`env` / `headers` 的值可以写成 `env:NAME`（宿主进程环境变量）或 `cred:NAME`（DSH 的 `credentials` 服务）。解析在挂载前完成，交给 `mcp-client` 的是真实值，patch 和设置页里始终只有引用文本；解析不出来时保留字面值并在宿主日志里记一条，`credentials` 服务不在也不影响其它服务器挂载
+- 设置页里两个多行输入框的标签标出这两种写法
+
+### 变更
+
+- 加入 `scripts/check-pack.mjs` 与 `npm test` / `npm run check:pack` 脚本，`prepublishOnly` 会先跑这两步：自测不过，或 `files` 白名单漏文件、混进 `test/` 与 `.github/`，发布中止
+- 加入 GitHub Actions：node 18 / 20 / 22 与 `dsh-mcp-client` 0.1.0-rc.6 / 0.1.0-rc.8 / 0.1.1-rc.2 组合跑两半自测，另有一个 job 跑打包校验
+- 宿主自测新增 20 条断言，覆盖引用解析、引用名非法、取值失败与 `credentials` 缺失
+
 ## 0.3.3 - 2026-09-28
 
 ### 变更

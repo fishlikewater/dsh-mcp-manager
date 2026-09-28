@@ -26,7 +26,12 @@
           - '-y'
           - '@some/mcp-server'
         env:
-          SOME_TOKEN: 'your-token'
+          # 值可以是明文，也可以指向别处存着的密钥，patch 里只留引用文本：
+          #   env:NAME   读宿主进程的环境变量
+          #   cred:NAME  走 DSH 的 credentials 服务
+          # 引用在挂载前解析；解析不出来时保留字面值，并在宿主日志里记一条。
+          SOME_TOKEN: 'env:SOME_TOKEN'
+          # ANOTHER_TOKEN: 'cred:my-stdio-server-token'
         cwd: ''
         url: ''
         headers: {}
@@ -41,4 +46,6 @@
         cwd: ''
         url: http://localhost:3000/mcp
         headers:
-          Authorization: 'Bearer your-token'
+          # 值同样支持 env: / cred: 引用；引用名限 [A-Za-z_][A-Za-z0-9_]*。
+          Authorization: 'cred:my-http-server-token'
+          # X-Api-Key: 'env:MY_HTTP_API_KEY'

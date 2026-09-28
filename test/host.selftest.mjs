@@ -217,5 +217,79 @@ console.log('[H] servers 是 volatile 引用；设置页写入后靠 loader/vola
   check('重挂载没有 warn', warnText(logs) === '', warnText(logs));
 }
 
+console.log('[I] env / headers 的密钥引用在挂载前解析，持久化那份只留引用文本');
+{
+  const ENV_KEY = 'DSH_MCP_MANAGER_SELFTEST_TOKEN';
+  process.env[ENV_KEY] = 'from-process-env';
+
+  const config = Config({
+    servers: [{
+      serverName: 'with-refs',
+      transport: 'stdio',
+      command: 'node',
+      env: {
+        FROM_ENV: `env:${ENV_KEY}`,
+        FROM_CRED: 'cred:selftest_cred',
+        NOT_SET: 'env:DSH_MCP_MANAGER_SELFTEST_MISSING',
+        UNKNOWN_CRED: 'cred:selftest_unknown',
+        PLAIN: 'plain-value',
+        // 引用名的字符集是 [A-Za-z_][A-Za-z0-9_]*，带连字符的名字不算引用。
+        NOT_A_REF: 'cred:selftest-cred',
+      },
+    }, {
+      serverName: 'refs-http',
+      transport: 'streamable-http',
+      url: 'http://127.0.0.1:1/mcp',
+      headers: { Authorization: 'cred:selftest_cred', 'X-Plain': 'v' },
+    }],
+  });
+
+  const { ctx, logs, mounted } = makeCtx();
+  // 只提供 credentials，其余服务照旧缺省。
+  ctx.get = (service) => (service === 'credentials'
+    ? { resolve: async (secretName) => (secretName === 'selftest_cred' ? { value: 'from-credentials-service' } : undefined) }
+    : undefined);
+
+  await apply(ctx, config);
+
+  check('两台都挂上了', mounted.length === 2, `mounted=${mounted.length}`);
+  const stdio = mounted[0] && mounted[0].config;
+  const http = mounted[1] && mounted[1].config;
+
+  check('env: 解析成进程环境变量', stdio && stdio.env.FROM_ENV === 'from-process-env', JSON.stringify(stdio && stdio.env));
+  check('cred: 解析成凭据值', stdio && stdio.env.FROM_CRED === 'from-credentials-service', JSON.stringify(stdio && stdio.env));
+  check('未设置的 env: 保留字面值', stdio && stdio.env.NOT_SET === 'env:DSH_MCP_MANAGER_SELFTEST_MISSING', JSON.stringify(stdio && stdio.env));
+  check('未配置的 cred: 保留字面值', stdio && stdio.env.UNKNOWN_CRED === 'cred:selftest_unknown');
+  check('普通值原样透传', stdio && stdio.env.PLAIN === 'plain-value');
+  check('名字带连字符的不算引用', stdio && stdio.env.NOT_A_REF === 'cred:selftest-cred');
+  check('headers 里的 cred: 同样解析', http && http.headers.Authorization === 'from-credentials-service', JSON.stringify(http && http.headers));
+  check('headers 里的普通值原样', http && http.headers['X-Plain'] === 'v');
+
+  const warns = warnText(logs);
+  check('未设置的 env 有告警', warns.includes('环境变量 DSH_MCP_MANAGER_SELFTEST_MISSING 未设置'), warns);
+  check('未配置的凭据有告警', warns.includes('凭据 selftest_unknown 未配置'), warns);
+
+  // 关键：解析只发生在交给 mcp-client 的那份副本上。
+  const persisted = config.servers.get()[0];
+  check(
+    '持久化配置里仍是引用文本',
+    persisted.env.FROM_ENV === `env:${ENV_KEY}` && persisted.env.FROM_CRED === 'cred:selftest_cred',
+    JSON.stringify(persisted.env),
+  );
+
+  delete process.env[ENV_KEY];
+}
+
+console.log('[J] credentials 服务缺失时 cred: 引用不崩，保留字面值');
+{
+  const { ctx, logs, mounted } = makeCtx();
+  await apply(ctx, {
+    servers: [{ serverName: 'no-cred-svc', command: 'node', env: { T: 'cred:whatever' } }],
+  });
+  check('照常挂载', mounted.length === 1, `mounted=${mounted.length}`);
+  check('引用保留字面值', mounted[0].config.env.T === 'cred:whatever', JSON.stringify(mounted[0].config.env));
+  check('给出告警', warnText(logs).includes('credentials 服务不可用'), warnText(logs));
+}
+
 console.log(failed === 0 ? '\nALL PASS' : `\n${failed} FAILED`);
 process.exit(failed === 0 ? 0 : 1);

@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  selftest:
+    name: node ${{ matrix.node }} / mcp-client ${{ matrix.mcp-client }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [18, 20, 22]
+        # 覆盖 peerDependencies 范围内已发布的 dsh-mcp-client。
+        mcp-client: [0.1.0-rc.6, 0.1.0-rc.8, 0.1.1-rc.2]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Install dependencies
+        run: npm install
+      - name: Pin dsh-mcp-client to matrix version
+        run: npm install --no-save --no-package-lock @deepseek-ai/dsh-mcp-client@${{ matrix.mcp-client }}
+      - name: Host selftest
+        run: node test/host.selftest.mjs
+      - name: Client selftest
+        run: node test/client.selftest.mjs
+
+  pack:
+    name: npm pack 校验（发布内容白名单）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: node scripts/check-pack.mjs

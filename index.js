@@ -28,6 +28,7 @@
 // 每个服务器：
 //   - `enabled: false` → 跳过挂载（配置保留，随时可开）；
 //   - 其余字段校验通过后挂载一个 mcp-client 实例，工具名 `mcp__<名称>__<工具名>`；
+//   - env / headers 的值可写成 `env:NAME` / `cred:NAME` 引用，挂载前才解析；
 //   - 实例的 disposed 生命周期绑定本插件的 fiber：条目重载/移除时自动卸载。
 //
 // mcp-client 的取用方式见下方 loadMcpClient：优先裸导入（由 profile 的 runtime
@@ -46,6 +47,11 @@ export const inject = [];
 const MCP_CLIENT_PACKAGE = '@deepseek-ai/dsh-mcp-client';
 const SERVER_NAME_PATTERN = /^[A-Za-z0-9_-]{1,32}$/;
 const DEFAULT_TOOL_CALL_TIMEOUT_MS = 60000;
+
+// 密钥引用：把值写成 `env:NAME` 读进程环境变量，写成 `cred:NAME` 走 DSH 的
+// credentials 服务。引用文本原样留在配置里（patch 文件里不出现明文），只在
+// 挂载前解析成真实值。
+const SECRET_REF_PATTERN = /^(env|cred):([A-Za-z_][A-Za-z0-9_]*)$/;
 
 // 服务器条目 schema。所有字段都带默认值，让「坏配置」只影响它自己那一台，
 // 而不是让整个条目的 config 校验失败（必填性在 apply 里逐台校验并记日志）。
@@ -163,6 +169,32 @@ function buildClientConfig(server, toolCallTimeoutMs) {
   return config;
 }
 
+/**
+ * 解析实例配置里的密钥引用，返回新对象，不改动入参。
+ *
+ * 只看 env 与 headers 两张表：stringDict() 已经把它们的值统一成字符串，
+ * 所以这里除了字符串不会拿到别的。resolveOne(name, kind) 可以返回 Promise，
+ * 返回 undefined 表示没解析出来 —— 此时保留字面值，由调用方告警。
+ */
+async function substituteSecretRefs(config, resolveOne) {
+  const substitute = async (value) => {
+    if (typeof value !== 'string') return value;
+    const match = SECRET_REF_PATTERN.exec(value);
+    if (match === null) return value;
+    const resolved = await resolveOne(match[2], match[1]);
+    return resolved === undefined ? value : resolved;
+  };
+  const next = { ...config };
+  for (const field of ['env', 'headers']) {
+    const table = config[field];
+    if (table === null || typeof table !== 'object' || Array.isArray(table)) continue;
+    const resolvedTable = {};
+    for (const key of Object.keys(table)) resolvedTable[key] = await substitute(table[key]);
+    next[field] = resolvedTable;
+  }
+  return next;
+}
+
 /** 从包的 manifest 里挑出入口文件（exports "." → main → index.js）。 */
 function entryOf(manifest) {
   const exportsField = manifest && manifest.exports;
@@ -256,6 +288,40 @@ export async function apply(ctx, config) {
     return stale.length;
   };
 
+  // `env:NAME` 读进程环境变量，`cred:NAME` 走 DSH 的 credentials 服务。
+  // 解析不出来时返回 undefined，由 substituteSecretRefs 保留字面值。
+  const secretResolver = async (secretName, kind) => {
+    if (kind === 'env') {
+      const value = process.env[secretName];
+      if (value === undefined) {
+        warn(`[dsh-mcp-manager] 环境变量 ${secretName} 未设置，env: 引用保留字面值`);
+      }
+      return value;
+    }
+    let credentials;
+    try {
+      credentials = typeof ctx.get === 'function' ? ctx.get('credentials') : undefined;
+    } catch {
+      credentials = undefined;
+    }
+    if (!credentials || typeof credentials.resolve !== 'function') {
+      warn(`[dsh-mcp-manager] credentials 服务不可用，cred: 引用 ${secretName} 保留字面值`);
+      return undefined;
+    }
+    let resolved;
+    try {
+      resolved = await credentials.resolve(secretName);
+    } catch (error) {
+      warn(`[dsh-mcp-manager] 解析凭据 ${secretName} 失败 — ${message(error)}`);
+      return undefined;
+    }
+    if (resolved === undefined || resolved === null) {
+      warn(`[dsh-mcp-manager] 凭据 ${secretName} 未配置，cred: 引用保留字面值`);
+      return undefined;
+    }
+    return resolved.value;
+  };
+
   /** 按当前（volatile）配置校验、筛选并挂载全部服务器。 */
   const mountAll = async () => {
     const servers = toServerArray(volatileValue(settings.servers));
@@ -315,11 +381,17 @@ export async function apply(ctx, config) {
         // fiber 生命周期由 cordis 持有：条目重载/移除时这些实例自动 dispose
         // （dsh-mcp-client 自己负责断开连接、注销工具、释放 serverName 占用）。
         // volatile 变更不会重载条目，由 unmountAll / mountAll 手动完成同样的事。
+        // 密钥引用在这一步解析：交给 mcp-client 的永远是真实值，而持久化的
+        // 条目 config 里只有 `env:NAME` / `cred:NAME`。
+        const clientConfig = await substituteSecretRefs(
+          buildClientConfig(server, toolCallTimeoutMs),
+          secretResolver,
+        );
         const fiber = ctx.plugin({
           name: 'mcp-client',
           inject: ['tools'],
           apply: mcpClient.apply,
-        }, buildClientConfig(server, toolCallTimeoutMs));
+        }, clientConfig);
         mountings.push(fiber);
         mounted += 1;
         info(`[dsh-mcp-manager] ${label}: 已挂载（${normalizeTransport(server)}）`);

@@ -546,7 +546,7 @@ window.__ModuleLoader__.load({
           }),
         },
         {
-          key: 'env', label: '环境变量（env，每行 KEY=VALUE）',
+          key: 'env', label: '环境变量（env，每行 KEY=VALUE；值可写成 env:NAME / cred:NAME）',
           control: e('textarea', {
             id: 'mcp-f-env', className: 'mcp-textarea',
             style: S.textarea, value: f.env, onChange: set('env'), onKeyDown: onCtrlEnter,
@@ -570,7 +570,7 @@ window.__ModuleLoader__.load({
           }),
         },
         {
-          key: 'headers', label: '请求头（headers，每行 KEY: VALUE）',
+          key: 'headers', label: '请求头（headers，每行 KEY: VALUE；值可写成 env:NAME / cred:NAME）',
           control: e('textarea', {
             id: 'mcp-f-headers', className: 'mcp-textarea',
             style: S.textarea, value: f.headers, onChange: set('headers'), onKeyDown: onCtrlEnter,

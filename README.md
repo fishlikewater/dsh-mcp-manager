@@ -11,6 +11,7 @@ DSH 原生要在 profile 的 `cordis.patch.yml` 里手写 `@deepseek-ai/dsh-mcp-
 - 在「设置 → MCP 服务器」里增删改查，`stdio` 与 `streamable-http` 都支持
 - 每台服务器单独开关。关闭只是不挂载，配置保留
 - 保存即生效。`servers` 是 volatile 字段，走就地更新，不重载条目
+- 密钥不落盘。`env` / `headers` 的值可以写成 `env:NAME` / `cred:NAME`，挂载时才解析
 - 宿主侧不依赖 `webServer`，headless profile 一样能用，只是没有界面
 
 ## 安装
@@ -27,7 +28,7 @@ DSH 原生要在 profile 的 `cordis.patch.yml` 里手写 `@deepseek-ai/dsh-mcp-
 
 ```sh
 dsh plugin --profile desktop add @fishlikewater/dsh-mcp-manager
-dsh plugin --profile desktop add D:\downloads\fishlikewater-dsh-mcp-manager-0.3.3.tgz
+dsh plugin --profile desktop add D:\downloads\fishlikewater-dsh-mcp-manager-0.3.4.tgz
 ```
 
 两条路做完的是同样两件事：在 profile 目录里跑 pnpm，再按已装状态把声明了 `dsh.bundle` 的包补进 `dsh.profile.bundles`。装完都要重启桌面版，bundle 层只在启动时组合。重启后打开「设置 → MCP 服务器」；条目没出现就是被版本门禁拦下了，见「版本兼容」。
@@ -55,15 +56,26 @@ dsh --profile web --dump-config                          # 能看到 mcp-manager
 | `transport` | 全部 | `stdio` 或 `streamable-http`，默认 `stdio` |
 | `command` | stdio | 可执行文件，建议绝对路径 |
 | `args` | stdio | 数组，每行一个 |
-| `env` | stdio | 每行 `KEY=VALUE`，值可以是数字或布尔 |
+| `env` | stdio | 每行 `KEY=VALUE`，值可以是数字或布尔，也可以写成 `env:NAME` / `cred:NAME` |
 | `cwd` | stdio | 可选 |
 | `url` | http | 例如 `http://localhost:3000/mcp` |
-| `headers` | http | 每行 `KEY: VALUE` |
+| `headers` | http | 每行 `KEY: VALUE`，值同样支持 `env:NAME` / `cred:NAME` |
 | `toolCallTimeoutMs` | 条目 | 单次工具调用超时，默认 `60000` |
 
 `serverName` 全局唯一是 `mcp-client` 的要求。重名时本插件只挂第一台，日志里记一条。
 
 改任意一台都会重建全部实例，其余 MCP 连接会重连一次。设置页在可见时每 5 秒对一次 revision，外部改了 patch 会自动反映到界面上。
+
+### 密钥引用
+
+`env` 和 `headers` 的值可以指向别处存着的密钥，配置里只留引用文本：
+
+| 写法 | 取值来源 |
+|---|---|
+| `env:NAME` | 宿主进程的环境变量 |
+| `cred:NAME` | DSH 的 `credentials` 服务，即 `resolve(NAME)` |
+
+引用名限 `[A-Za-z_][A-Za-z0-9_]*`，带连字符的名字不会被当成引用。解析发生在挂载前，交给 `mcp-client` 的配置里是真实值，而 patch 文件和设置页里始终只有引用文本。解析不出来时保留字面值，并在宿主日志里记一条；`credentials` 服务不在时同样如此，不影响其它服务器挂载。
 
 [examples/mcp-servers.example.yaml](examples/mcp-servers.example.yaml) 是一份可以直接抄的配置，`stdio` 和 `streamable-http` 各一。
 
@@ -144,23 +156,25 @@ volatile fields require a fixed object path without an enclosing volatile field
 | 工具列表里没有 `mcp__*` | 该台 `enabled: false`、config 校验失败，或 MCP 服务器自己连不上。在宿主日志里搜 `[dsh-mcp-manager]` 和 `mcp-client(` |
 | 提示无法加载 `@deepseek-ai/dsh-mcp-client` | 该 profile 的 runtime 解析拦截没生效，或这个包不在运行时里 |
 | 保存后 patch 文件被重排、注释消失 | 设置页按 schema 重写文件，属正常行为 |
+| 服务器连不上但配置看着没错 | 值可能写成了 `env:NAME` / `cred:NAME`，而对应的环境变量或凭据没配。宿主日志里搜「引用保留字面值」 |
 | 安装命令跑不通 | 手工兜底：在 profile 的 `package.json` 里加依赖、把包名加进 `dsh.profile.bundles`，再 `pnpm install` |
 
 ## 开发
 
 ```text
-package.json      dsh.bundle.patch 与 dsh.client 双 manifest
-cordis.patch.yml  bundle 层，插入 mcp-manager 条目
-index.js          宿主半：Config schema，逐台挂载 mcp-client
-client.js         客户端 bundle，手写维护，不需要打包器
-examples/         配置示例
-test/             自测与迁移校验
+package.json            dsh.bundle.patch 与 dsh.client 双 manifest
+cordis.patch.yml        bundle 层，插入 mcp-manager 条目
+index.js                宿主半：Config schema，逐台挂载 mcp-client
+client.js               客户端 bundle，手写维护，不需要打包器
+examples/               配置示例
+scripts/check-pack.mjs  npm pack 白名单校验
+test/                   自测与迁移校验
 ```
 
 ```sh
-node test/host.selftest.mjs            # 宿主半，假 ctx
-node test/client.selftest.mjs          # 客户端半，假 module loader 和假 Remote
-python test/verify-profile-patch.py    # 校验两个 profile 的 patch
+npm test                               # 宿主半 + 客户端半自测
+npm run check:pack                     # 发布内容白名单
+python test/verify-profile-patch.py    # 校验两个 profile 的 patch，要能读到 $DSH_HOME
 ```
 
 `client.js` 是给浏览器模块加载器用的产物，格式是 `window.__ModuleLoader__.load({ id, factory })`，`id` 必须是完整包名 `@fishlikewater/dsh-mcp-manager`：client-modules 按包名匹配 Loader 条目。
@@ -172,6 +186,8 @@ python test/verify-profile-patch.py    # 校验两个 profile 的 patch
 ```sh
 npm publish
 ```
+
+`prepublishOnly` 会先跑 `npm test` 和 `npm run check:pack`：自测不过，或者 `files` 白名单漏了 `examples/`、混进了 `test/`，发布都会中止。
 
 包名用 scope 版 `@fishlikewater/dsh-mcp-manager`，无 scope 的 `dsh-mcp-manager` 已被他人占用。发布者账号必须是 `fishlikewater`。`publishConfig.access: public` 已经配好，不用带 `--access public`。
 
