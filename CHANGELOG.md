@@ -17,7 +17,8 @@
 - 桌面版下报「没有找到 mcp-manager 配置命名空间」。settings 服务只把带 volatile 字段的活跃条目投影成命名空间，`describe()` 遇到没有的直接跳过。`servers` 现在整列标记为 volatile，取值走 `.get()`，并监听 `loader/volatile-update` 在配置变更后重新挂载
 - 设置页保存后新配置不生效。volatile 变更不会重载条目，`apply` 不重跑；改为先 `dispose()` 旧实例，再按新值重新挂载
 - 传输方式下拉框不跟主题。展开的候选列表是原生控件，不读 CSS 变量，只认 `color-scheme`；外壳把它设在 `<html>` 上，局部容器会覆盖成 light，暗色主题下候选文字和背景就撞在一起。`.mcp-select` 现在显式跟随暗色标记
-- 按钮与外壳主题不一致。尺寸、圆角、边框宽度改照外壳设置页的规则：主按钮 36px 高、`radius-md`、`.5px` 边框，卡片内的行内按钮 28px 高、`radius-sm`。ghost 的文字色由 `label-secondary` 改为 `label-primary`，hover 改用 `--dsw-alias-button-primary-hover` 和 `--dsw-alias-button-ghost-active-fill`，不再用 `filter: brightness()` 硬算
+- 按钮与外壳主题不一致。尺寸、圆角、边框宽度改照外壳设置页的规则：主按钮 36px 高、`radius-md`、`.5px` 边框，卡片内的行内按钮 28px 高、`radius-sm`。ghost 的文字色由 `label-secondary` 改为 `label-primary`，hover 改用 `--dsw-alias-interactive-bg-hover-solid` 和 `--dsw-alias-button-ghost-active-fill`，不再用 `filter: brightness()` 硬算
+- 暗色主题下主按钮、开关和保存按钮的颜色是反的。`--dsw-alias-button-primary-fill` 是外壳的对比按钮配色，暗色主题下解析成近白底加近黑字，用在这里就成了白底黑字。主按钮改用 `button-elevated-fill` 配 `label-primary`（亮色 `#fff` 底，暗色 `#43454a` 底），开关的开启态改用 `state-business-primary`（亮色 `#4176e6`，暗色 `#7aaaff`）加白色滑块，和关闭态的描边空心区分得开。实心危险按钮的文字色由 `label-primary-foreground` 改为白色，它在暗色主题下原本渲染成红底黑字
 - 卡片、编辑区、输入框的底色与边框对齐外壳。卡片改用 `settings-card-stroke` / `settings-card-fill` / `radius-xl`，编辑区用 `bg-module-platform` / `radius-lg`，输入框改用 `.5px` 的 `border-l4` 和 `bg-base`
 - `input` / `select` 不继承 `font-family`（UA 样式里写死了），会用系统 UI 字体渲染，和旁边的 label 对不上，统一补 `font-family: inherit`
 - 字段标签补 `font-weight: 500`，字段内间距由 2 改为 6，说明文字行高由 16 改为 18

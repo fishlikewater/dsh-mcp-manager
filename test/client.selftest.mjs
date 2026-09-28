@@ -188,14 +188,24 @@ ok('placeholder 走三级文字色', /\.mcp-input::placeholder,\.mcp-textarea::p
 ok('没有漏拼的模板占位', !/\$\{/.test(uiCss));
 
 // 按钮尺寸、圆角、边框照外壳设置页的规则，hover 走 alias token 而不是 filter。
+// 主按钮必须是"跟随主题"的 elevated-fill：button-primary-fill 是反色的对比按钮配色，
+// 暗色主题下会渲染成近白底 + 近黑字，和外壳的方向正好相反。
 ok('按钮边框是 .5px 且圆角走 radius-md', /\.mcp-btn\{[^}]*border:\.5px solid transparent[^}]*border-radius:var\(--dsw-radius-md\)/.test(uiCss));
-ok('主按钮用一级文字反色', /\.mcp-btn-primary\{background:var\(--dsw-alias-button-primary-fill\);color:var\(--dsw-alias-label-primary-foreground/.test(uiCss));
-ok('主按钮 hover 换 token', /\.mcp-btn-primary:not\(:disabled\):hover\{background:var\(--dsw-alias-button-primary-hover/.test(uiCss));
+ok('主按钮用跟随主题的 elevated-fill', /\.mcp-btn-primary\{background:var\(--dsw-alias-button-elevated-fill\);color:var\(--dsw-alias-label-primary\)/.test(uiCss));
+ok('主按钮 hover 换 token', /\.mcp-btn-primary:not\(:disabled\):hover\{background:var\(--dsw-alias-interactive-bg-hover-solid\)\}/.test(uiCss));
+ok('主按钮不再用反色的 primary-fill', !/\.mcp-btn-primary\{background:var\(--dsw-alias-button-primary-fill\)/.test(uiCss));
 ok('ghost 文字色是一级而非二级', /\.mcp-btn-ghost\{background:transparent;color:var\(--dsw-alias-label-primary\)/.test(uiCss));
 ok('ghost hover 用外壳的 ghost 高亮填充', /\.mcp-btn-ghost:not\(:disabled\):hover\{background:var\(--dsw-alias-button-ghost-active-fill\)/.test(uiCss));
+ok('实心危险按钮用白字', /\.mcp-btn-danger-solid\{background:var\(--dsw-alias-state-error-primary\);color:#fff/.test(uiCss));
 ok('行内小按钮 28px 高', /\.mcp-btn\.mcp-btn-sm\{height:28px/.test(uiCss));
 ok('按钮不再用 filter 算 hover', !/\.mcp-btn:hover\{filter/.test(uiCss));
 ok('按钮不再写死胶囊圆角', !/border-radius:16px/.test(uiCss));
+// 开关：开 = 品牌蓝实心，滑块白色。用任何一个 button-*-fill 都会在暗色主题下翻成浅色，
+// 和"关"的描边空心难以区分。
+ok('开关开启态用品牌蓝', /\.mcp-switch-on\{background:var\(--dsw-alias-state-business-primary\)/.test(uiCss));
+ok('开关关闭态是描边空心', /\.mcp-switch\{[^}]*background:transparent/.test(uiCss));
+ok('开关滑块在开启态是白色', /\.mcp-switch-on \.mcp-switch-thumb\{left:18px;background:#fff\}/.test(uiCss));
+ok('开关不再用 button-*-fill', !/\.mcp-switch-on\{background:var\(--dsw-alias-button-/.test(uiCss));
 ok('开关提亮也走 token 而非 filter', !/\.mcp-switch-on:hover\{[^}]*filter/.test(uiCss));
 
 // 内联样式表：卡片、编辑区、输入框的底色与边框对齐外壳。

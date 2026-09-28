@@ -100,16 +100,19 @@ window.__ModuleLoader__.load({
         // 按钮：尺寸、圆角、边框宽度照抄外壳设置页的描边按钮（36px 高、radius-md、
         // .5px 边框），配色一律走 alias token。ghost 的文字色是 label-primary，
         // 不是 label-secondary；hover 用外壳定义的 ghost 高亮填充，不用 filter 硬算。
+        // 主按钮用 button-elevated-fill + label-primary：这两个 token 是"跟随主题"的
+        // （亮色 #fff 底配近黑字，暗色 #43454a 底配近白字）。button-primary-fill
+        // 是反色的对比按钮配色，暗色主题下会渲染成近白底，用在这里正好相反。
         + '.mcp-btn{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:4px;height:36px;min-width:58px;padding:0 14px;border:.5px solid transparent;border-radius:var(--dsw-radius-md);cursor:pointer;font-family:inherit;font-size:14px;line-height:22px;white-space:nowrap;transition:background-color .15s ease,border-color .15s ease,color .15s ease,opacity .15s ease}'
         + '.mcp-btn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}'
         + '.mcp-btn:disabled{opacity:.5;cursor:not-allowed}'
-        + '.mcp-btn-primary{background:var(--dsw-alias-button-primary-fill);color:var(--dsw-alias-label-primary-foreground,#fff);font-weight:500}'
-        + '.mcp-btn-primary:not(:disabled):hover{background:var(--dsw-alias-button-primary-hover,var(--dsw-alias-button-primary-fill))}'
+        + '.mcp-btn-primary{background:var(--dsw-alias-button-elevated-fill);color:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-border-l3);font-weight:500}'
+        + '.mcp-btn-primary:not(:disabled):hover{background:var(--dsw-alias-interactive-bg-hover-solid)}'
         + '.mcp-btn-ghost{background:transparent;color:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-border-l3)}'
         + '.mcp-btn-ghost:not(:disabled):hover{background:var(--dsw-alias-button-ghost-active-fill);border-color:var(--dsw-alias-button-ghost-active-border,var(--dsw-alias-border-l3))}'
         + '.mcp-btn-danger{background:transparent;color:var(--dsw-alias-state-error-primary);border-color:var(--dsw-alias-state-error-primary)}'
         + '.mcp-btn-danger:not(:disabled):hover{background:var(--dsw-alias-button-ghost-active-fill)}'
-        + '.mcp-btn-danger-solid{background:var(--dsw-alias-state-error-primary);color:var(--dsw-alias-label-primary-foreground,#fff);border-color:var(--dsw-alias-state-error-primary)}'
+        + '.mcp-btn-danger-solid{background:var(--dsw-alias-state-error-primary);color:#fff;border-color:var(--dsw-alias-state-error-primary)}'
         // 行内小按钮：外壳的 danger / link 按钮是 28px 高、radius-sm、12px 字。
         // 双类名提高特异性，免得被上面的基础尺寸压回去。
         + '.mcp-btn.mcp-btn-sm{height:28px;min-width:0;padding:0 10px;font-size:12px;line-height:18px;border-radius:var(--dsw-radius-sm,8px)}'
@@ -128,15 +131,16 @@ window.__ModuleLoader__.load({
         + 'body[data-ds-dark-theme] .mcp-select,html[data-ds-dark-theme] .mcp-select{color-scheme:dark}'
         + '.mcp-select option{background:var(--dsw-alias-bg-layer-2,#fff);color:var(--dsw-alias-label-primary)}'
         + 'body[data-ds-dark-theme] .mcp-select option,html[data-ds-dark-theme] .mcp-select option{background:var(--dsw-alias-bg-layer-2,#1f1f1f)}'
-        // 开关
+        // 开关：关 = 描边空心，开 = 品牌蓝实心。用 state-business-primary 而不是
+        // 任何一个 button-*-fill —— 那些在暗色主题下会翻成浅色，和"关"难以区分。
         + '.mcp-switch{position:relative;width:34px;height:18px;border-radius:9px;border:1px solid var(--dsw-alias-border-l3);background:transparent;cursor:pointer;padding:0;box-sizing:border-box;transition:background-color .15s ease,border-color .15s ease;flex:none}'
         + '.mcp-switch:hover{border-color:var(--dsw-alias-border-l4)}'
-        + '.mcp-switch-on{background:var(--dsw-alias-button-primary-fill);border-color:transparent}'
-        + '.mcp-switch-on:hover{border-color:transparent;background:var(--dsw-alias-button-primary-hover)}'
+        + '.mcp-switch-on{background:var(--dsw-alias-state-business-primary);border-color:transparent}'
+        + '.mcp-switch-on:hover{border-color:transparent;background:var(--dsw-alias-state-business-primary)}'
         + '.mcp-switch:disabled{opacity:.5;cursor:not-allowed}'
         + '.mcp-switch:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}'
         + '.mcp-switch-thumb{position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:var(--dsw-alias-label-secondary);transition:left .15s ease,background-color .15s ease;pointer-events:none}'
-        + '.mcp-switch-on .mcp-switch-thumb{left:18px;background:var(--dsw-alias-label-primary-foreground,#fff)}'
+        + '.mcp-switch-on .mcp-switch-thumb{left:18px;background:#fff}'
         // 骨架 / 状态点
         + '@keyframes mcpShimmer{0%,100%{opacity:.5}50%{opacity:1}}'
         + '.mcp-skeleton div{animation:mcpShimmer 1.3s ease-in-out infinite}'
