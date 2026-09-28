@@ -1,31 +1,44 @@
-# settings.yaml 中 `mcp` 命名空间的示例配置。
-# 可以把它合并进 $DSH_HOME/settings.yaml，再从「设置 → MCP 服务器」调整；
-# 也可以直接在设置页里新增（这里主要是展示文件里的结构）。
+# mcp-manager 条目 config 的示例（0.3.0 起，配置写在 Loader 条目的 config 下）。
+#
+# 三种等价写法，任选其一：
+#
+# 1) 在设置页「设置 → MCP 服务器」里增删改（推荐；宿主会把它写回当前 profile 的 patch）；
+# 2) 把下面的 config 片段合并进当前 profile 的 cordis.patch.yml。
+#
+# 不要写到 $DSH_HOME/cordis.patch.yml（home 级用户 patch）：它应用在 profile patch 之后、
+# 优先级更高，而 DSH 拒绝会被覆盖层盖住的表单写入 —— 配置放在这一层，设置页保存会失败。
+#
+# 注意：条目 id 必须是 mcp-manager —— 它同时是该条目的 settings 命名空间。
 
-mcp:
-  servers:
-    # stdio 示例：本地命令（把 command/args 换成你的服务器启动方式）
-    - serverName: my-stdio-server
-      enabled: true
-      transport: stdio
-      command: npx
-      args:
-        - '-y'
-        - '@some/mcp-server'
-      env:
-        SOME_TOKEN: 'your-token'
-      cwd: ''
-      url: ''
-      headers: {}
+- id: mcp-manager
+  config:
+    # 单次 MCP 工具调用的超时（毫秒），默认 60000。
+    # 它不是 volatile 字段，不会出现在设置页表单里，只能像这样写进 patch。
+    toolCallTimeoutMs: 60000
+    servers:
+      # stdio 示例：本地命令（把 command/args 换成你的服务器启动方式）。
+      # 建议 command 用绝对路径：宿主会清洗子进程环境变量，裸命令名可能不在 PATH 里。
+      - serverName: my-stdio-server
+        enabled: true
+        transport: stdio
+        command: npx
+        args:
+          - '-y'
+          - '@some/mcp-server'
+        env:
+          SOME_TOKEN: 'your-token'
+        cwd: ''
+        url: ''
+        headers: {}
 
-    # streamable-http 示例：远程 URL（enabled: false 表示默认关闭）
-    - serverName: my-http-server
-      enabled: false
-      transport: streamable-http
-      command: ''
-      args: []
-      env: {}
-      cwd: ''
-      url: http://localhost:3000/mcp
-      headers:
-        Authorization: 'Bearer your-token'
+      # streamable-http 示例：远程 URL（enabled: false 表示先不挂载，随时可在设置页开启）。
+      - serverName: my-http-server
+        enabled: false
+        transport: streamable-http
+        command: ''
+        args: []
+        env: {}
+        cwd: ''
+        url: http://localhost:3000/mcp
+        headers:
+          Authorization: 'Bearer your-token'

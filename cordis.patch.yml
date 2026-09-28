@@ -1,7 +1,8 @@
 # dsh-mcp-manager bundle patch：在组合树中插入管理器行。
-# 宿主侧按 settings 命名空间 `mcp` 挂载 @deepseek-ai/dsh-mcp-client 实例，
-# 并在设置页注册「MCP 服务器」配置界面。配置持久化在 settings.yaml，
-# 改动即时热生效。
+#
+# 本行同时是配置载体：要挂载的 MCP 服务器列表写在本条目的 config.servers 下
+# （设置页「MCP 服务器」编辑的就是这份数据，宿主把它持久化回用户 patch 层）。
+# config 变化 → 本条目重载 → 宿主按新配置挂载/卸载 mcp-client 实例。
 #
 # 用户可以在自己的 profile cordis.patch.yml 里按 id 覆盖本行
 # （例如禁用：- id: mcp-manager  disabled: true）。
@@ -9,3 +10,29 @@
 - insert:
     - id: mcp-manager
       name: '@fishlikewater/dsh-mcp-manager'
+      # 不写 config 时 servers 默认为空数组，等价于：
+      # config:
+      #   servers: []
+      #
+      # 手写示例（也可以全部在设置页里增删改）：
+      # config:
+      #   toolCallTimeoutMs: 60000
+      #   servers:
+      #     - serverName: github
+      #       enabled: true
+      #       transport: stdio
+      #       command: npx
+      #       args:
+      #         - '-y'
+      #         - '@modelcontextprotocol/server-github'
+      #       env:
+      #         GITHUB_TOKEN: 'your-token'
+      #       cwd: ''
+      #       url: ''
+      #       headers: {}
+      #     - serverName: mydb
+      #       enabled: false
+      #       transport: streamable-http
+      #       url: http://127.0.0.1:5225/mcp
+      #       headers:
+      #         Authorization: 'Bearer your-token'

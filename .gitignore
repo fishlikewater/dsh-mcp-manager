@@ -3,3 +3,10 @@ node_modules/
 .DS_Store
 dist/
 .idea/
+
+# 打包产物与本地备份不入库
+*.tgz
+*.bak
+*.bak-*
+package-lock.json
+__pycache__/

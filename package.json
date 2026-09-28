@@ -1,7 +1,7 @@
 {
   "name": "@fishlikewater/dsh-mcp-manager",
-  "version": "0.2.0",
-  "description": "MCP 服务器管理器：在 DSH 设置页配置 MCP 服务器，宿主侧按配置热挂载/卸载 mcp-client 实例",
+  "version": "0.3.2",
+  "description": "MCP 服务器管理器：在 DSH 设置页配置 MCP 服务器（写在本条目的 config.servers），宿主按配置挂载/卸载 mcp-client 实例",
   "type": "module",
   "main": "index.js",
   "publishConfig": {
@@ -16,6 +16,7 @@
     "index.js",
     "client.js",
     "cordis.patch.yml",
+    "examples",
     "README.md",
     "LICENSE"
   ],
@@ -42,15 +43,14 @@
       "patch": "./cordis.patch.yml"
     },
     "client": {
-      "platform": "web",
-      "inject": []
+      "platform": "web"
     }
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.1",
-    "@deepseek-ai/dsh-mcp-client": "^0.1.0-rc.6"
+    "@deepseek-ai/dsh-mcp-client": "0.1.0-rc.6 || 0.1.1-rc.2 || 0.1.7-rc.2"
   },
   "dependencies": {
-    "@deepseek-ai/schemastery": "^3.18.1"
+    "@deepseek-ai/schemastery": "^3.18.4"
   }
 }
