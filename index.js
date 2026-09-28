@@ -21,7 +21,7 @@
 //      设置命名空间的约定就是条目 id（无条目时用插件名）。
 //   2. 客户端可读写的命名空间由宿主 api-proxy 的白名单门控，插件自注册的额外
 //      命名空间不保证被 serve 给浏览器；条目的 config 才走官方 `settings`
-//      remote（客户端 `connection.api.settings.describe/mutate`）。
+//      remote（客户端 `ctx.remote.settings.describe/mutate`）。
 //   3. 桌面端同样通过 Web application 启动 Desktop profile，但设置通道走
 //      官方 settings remote 比自建 HTTP 路由更稳（不依赖路由注册时机）。
 //

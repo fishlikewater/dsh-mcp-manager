@@ -1,6 +1,6 @@
 # mcp-manager 条目 config 的示例（0.3.0 起，配置写在 Loader 条目的 config 下）。
 #
-# 三种等价写法，任选其一：
+# 两种写法，任选其一：
 #
 # 1) 在设置页「设置 → MCP 服务器」里增删改（推荐；宿主会把它写回当前 profile 的 patch）；
 # 2) 把下面的 config 片段合并进当前 profile 的 cordis.patch.yml。
