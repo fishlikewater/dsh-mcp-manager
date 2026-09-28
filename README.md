@@ -28,7 +28,7 @@ DSH 原生要在 profile 的 `cordis.patch.yml` 里手写 `@deepseek-ai/dsh-mcp-
 
 ```sh
 dsh plugin --profile desktop add @fishlikewater/dsh-mcp-manager
-dsh plugin --profile desktop add D:\downloads\fishlikewater-dsh-mcp-manager-0.3.4.tgz
+dsh plugin --profile desktop add D:\downloads\fishlikewater-dsh-mcp-manager-0.3.5.tgz
 ```
 
 两条路做完的是同样两件事：在 profile 目录里跑 pnpm，再按已装状态把声明了 `dsh.bundle` 的包补进 `dsh.profile.bundles`。装完都要重启桌面版，bundle 层只在启动时组合。重启后打开「设置 → MCP 服务器」；条目没出现就是被版本门禁拦下了，见「版本兼容」。

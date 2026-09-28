@@ -175,6 +175,18 @@ try {
   ok('其它拒绝码原样抛出宿主消息 → ' + error.message, error.message === '该部署只读');
 }
 
+// ── H. 注入 CSS 的主题跟随 ───────────────────────────────────────────────────
+console.log('\nH. 注入 CSS 的主题跟随');
+const uiCss = t.buildUiCss();
+ok('.mcp-select 显式声明亮色 color-scheme', /\.mcp-select\{color-scheme:light\}/.test(uiCss));
+ok('body 上的暗色标记把下拉框切到 dark', /body\[data-ds-dark-theme\] \.mcp-select[^{]*\{color-scheme:dark\}/.test(uiCss));
+ok('html 上的暗色标记同样覆盖', /html\[data-ds-dark-theme\] \.mcp-select/.test(uiCss));
+ok('候选列表用主题背景与文字色', /\.mcp-select option\{background:var\(--dsw-alias-bg-layer-2/.test(uiCss));
+ok('候选列表在暗色下有独立背景', /body\[data-ds-dark-theme\] \.mcp-select option[^{]*\{background:/.test(uiCss));
+ok('弹层投影分主题', /body\[data-ds-dark-theme\] \.mcp-modal[^{]*\{box-shadow/.test(uiCss));
+ok('placeholder 走三级文字色', /\.mcp-input::placeholder,\.mcp-textarea::placeholder\{color:var\(--dsw-alias-label-tertiary\)\}/.test(uiCss));
+ok('没有漏拼的模板占位', !/\$\{/.test(uiCss));
+
 // ── 汇总 ────────────────────────────────────────────────────────────────────
 console.log('\n通过 ' + pass + ' 项，失败 ' + fail + ' 项');
 if (fail > 0) process.exitCode = 1;

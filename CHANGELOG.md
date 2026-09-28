@@ -2,6 +2,20 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## 0.3.5 - 2026-09-28
+
+### 修复
+
+- 传输方式下拉框不跟主题。展开的候选列表是原生控件，不读 CSS 变量，只认 `color-scheme`。外壳虽然把它设在 `<html>` 上，局部容器会覆盖成 light，暗色主题下候选文字和背景就撞在一起。`.mcp-select` 现在显式跟随暗色标记
+- 输入框和下拉框的字体不跟周围文字。`input` / `select` 不继承 `font-family`（UA 样式里写死了），会用系统 UI 字体渲染，和 label 对不上。统一补 `font-family: inherit`
+
+### 变更
+
+- placeholder 改用 `--dsw-alias-label-tertiary`，不再吃浏览器默认色
+- 弹层投影分主题：浅色 `.18`、暗色 `.5`。原来固定 `.28`，暗色下几乎看不出浮层
+- `.mcp-btn-primary` 与开关圆点的 `--dsw-alias-label-primary-foreground` 补上 fallback，和 `.mcp-btn-danger-solid` 保持一致
+- `injectUiCss()` 拆出纯函数 `buildUiCss()`，客户端自测新增 8 条断言覆盖主题跟随规则
+
 ## 0.3.4 - 2026-09-28
 
 ### 新增

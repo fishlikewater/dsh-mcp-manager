@@ -46,6 +46,10 @@ window.__ModuleLoader__.load({
     // ── styles ──────────────────────────────────────────────────────────────
     // 颜色/圆角/字体全部走外壳的 --dsw-alias-* 设计变量；hover/focus/动画等
     // 伪类效果无法用 inline style 表达，统一由 injectUiCss() 注入的 .mcp-* 类提供。
+    // input / textarea / select 不继承字体（UA 样式里写死了），必须显式 font-family:inherit，
+    // 否则表单控件会用系统 UI 字体，和旁边的 label 对不上。
+    // 行内 code 的底色留中性半透明灰：--dsw-alias-* 里只有层级背景语义，
+    // 拿它当行内代码底会和卡片糊成一片，两套主题下都不可辨。
     var S = {
       section: { maxWidth: 720, display: 'flex', flexDirection: 'column', gap: 12 },
       head: { display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' },
@@ -68,7 +72,7 @@ window.__ModuleLoader__.load({
       fieldError: { margin: 0, fontSize: 12, lineHeight: '16px', color: 'var(--dsw-alias-state-error-primary)' },
       hint: { margin: 0, fontSize: 12, lineHeight: '16px', color: 'var(--dsw-alias-label-tertiary)' },
       code: { fontFamily: 'var(--dsw-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace)', background: 'rgba(128,128,128,.12)', borderRadius: 4, padding: '1px 5px', fontSize: 11 },
-      input: { boxSizing: 'border-box', width: '100%', height: 32, borderRadius: 8, border: '1px solid var(--dsw-alias-border-l2)', background: 'transparent', color: 'var(--dsw-alias-label-primary)', padding: '0 10px', fontSize: 13 },
+      input: { boxSizing: 'border-box', width: '100%', height: 32, borderRadius: 8, border: '1px solid var(--dsw-alias-border-l2)', background: 'transparent', color: 'var(--dsw-alias-label-primary)', padding: '0 10px', fontSize: 13, fontFamily: 'inherit' },
       textarea: { boxSizing: 'border-box', width: '100%', minHeight: 56, borderRadius: 8, border: '1px solid var(--dsw-alias-border-l2)', background: 'transparent', color: 'var(--dsw-alias-label-primary)', padding: '6px 10px', fontSize: 12, fontFamily: 'inherit', resize: 'vertical' },
       empty: { border: '1px dashed var(--dsw-alias-border-l3)', borderRadius: 12, padding: '28px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, textAlign: 'center' },
       formBody: { display: 'flex', flexDirection: 'column', gap: 10 },
@@ -90,15 +94,16 @@ window.__ModuleLoader__.load({
         + '</svg>';
       var NAV_ICON_MASK = 'url("data:image/svg+xml,' + encodeURIComponent(NAV_ICON_SVG) + '")';
 
-    function injectUiCss() {
-      var css = ''
+    // CSS 拼装单独成一个纯函数：不碰 DOM，自测才能直接断言主题跟随规则。
+    function buildUiCss() {
+      return ''
         // 按钮
         + '.mcp-btn{height:32px;padding:0 14px;border-radius:16px;border:none;cursor:pointer;font-size:13px;line-height:20px;display:inline-flex;align-items:center;gap:4px;font-family:inherit;transition:filter .12s ease,background-color .12s ease,border-color .12s ease,opacity .12s ease}'
         + '.mcp-btn:hover{filter:brightness(1.08)}'
         + '.mcp-btn:active{filter:brightness(.94)}'
         + '.mcp-btn:focus-visible{outline:2px solid var(--dsw-alias-state-info-primary,var(--dsw-alias-button-primary-fill));outline-offset:2px}'
         + '.mcp-btn:disabled{opacity:.5;cursor:not-allowed;filter:none}'
-        + '.mcp-btn-primary{background:var(--dsw-alias-button-primary-fill);color:var(--dsw-alias-label-primary-foreground)}'
+        + '.mcp-btn-primary{background:var(--dsw-alias-button-primary-fill);color:var(--dsw-alias-label-primary-foreground,#fff)}'
         + '.mcp-btn-ghost{background:transparent;color:var(--dsw-alias-label-secondary);border:1px solid var(--dsw-alias-border-l3)}'
         + '.mcp-btn-danger{background:transparent;color:var(--dsw-alias-state-error-primary);border:1px solid var(--dsw-alias-state-error-primary)}'
         + '.mcp-btn-danger-solid{background:var(--dsw-alias-state-error-primary);color:var(--dsw-alias-label-primary-foreground,#fff);border:1px solid var(--dsw-alias-state-error-primary)}'
@@ -109,6 +114,14 @@ window.__ModuleLoader__.load({
         // 输入框
         + '.mcp-input:focus,.mcp-textarea:focus{outline:none;border-color:var(--dsw-alias-state-info-primary,var(--dsw-alias-button-primary-fill))}'
         + '.mcp-input-invalid,.mcp-input-invalid:focus{border-color:var(--dsw-alias-state-error-primary)}'
+        + '.mcp-input::placeholder,.mcp-textarea::placeholder{color:var(--dsw-alias-label-tertiary)}'
+        + '.mcp-input:disabled,.mcp-textarea:disabled,.mcp-select:disabled{opacity:.5;cursor:not-allowed}'
+        // 下拉框：展开的候选列表是原生控件，不读 CSS 变量，只认 color-scheme。
+        // 外壳虽然把它设在 <html> 上，局部容器却会覆盖成 light，所以这里显式跟随暗色标记。
+        + '.mcp-select{color-scheme:light}'
+        + 'body[data-ds-dark-theme] .mcp-select,html[data-ds-dark-theme] .mcp-select{color-scheme:dark}'
+        + '.mcp-select option{background:var(--dsw-alias-bg-layer-2,#fff);color:var(--dsw-alias-label-primary)}'
+        + 'body[data-ds-dark-theme] .mcp-select option,html[data-ds-dark-theme] .mcp-select option{background:var(--dsw-alias-bg-layer-2,#1f1f1f)}'
         // 开关
         + '.mcp-switch{position:relative;width:34px;height:18px;border-radius:9px;border:1px solid var(--dsw-alias-border-l3);background:transparent;cursor:pointer;padding:0;box-sizing:border-box;transition:background-color .15s ease,border-color .15s ease;flex:none}'
         + '.mcp-switch:hover{border-color:var(--dsw-alias-label-secondary)}'
@@ -117,7 +130,7 @@ window.__ModuleLoader__.load({
         + '.mcp-switch:disabled{opacity:.5;cursor:not-allowed}'
         + '.mcp-switch:focus-visible{outline:2px solid var(--dsw-alias-state-info-primary,var(--dsw-alias-button-primary-fill));outline-offset:2px}'
         + '.mcp-switch-thumb{position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:var(--dsw-alias-label-secondary);transition:left .15s ease,background-color .15s ease;pointer-events:none}'
-        + '.mcp-switch-on .mcp-switch-thumb{left:18px;background:var(--dsw-alias-label-primary-foreground)}'
+        + '.mcp-switch-on .mcp-switch-thumb{left:18px;background:var(--dsw-alias-label-primary-foreground,#fff)}'
         // 骨架 / 状态点
         + '@keyframes mcpShimmer{0%,100%{opacity:.5}50%{opacity:1}}'
         + '.mcp-skeleton div{animation:mcpShimmer 1.3s ease-in-out infinite}'
@@ -126,12 +139,17 @@ window.__ModuleLoader__.load({
         // 弹层（遮罩用外壳的 bg-mask-3 token，面板用 layer-2 浮层背景）
         + '.mcp-modal-mask{position:fixed;inset:0;background:var(--dsw-alias-bg-mask-3);display:flex;padding:24px 16px;overflow-y:auto;z-index:1000;animation:mcpFadeIn .15s ease}'
         // margin:auto —— 面板矮于视口时完全居中；超高时自动贴顶且遮罩可滚动（避免顶部被裁）
-        + '.mcp-modal{background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l2);border-radius:16px;box-shadow:0 12px 48px rgba(0,0,0,.28);width:640px;max-width:100%;padding:20px;margin:auto;animation:mcpSlideUp .18s ease}'
+        + '.mcp-modal{background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l2);border-radius:16px;box-shadow:0 12px 48px rgba(0,0,0,.18);width:640px;max-width:100%;padding:20px;margin:auto;animation:mcpSlideUp .18s ease}'
+        // 投影在浅色下要压住白底，暗色下要靠更重的黑才看得出浮层
+        + 'body[data-ds-dark-theme] .mcp-modal,html[data-ds-dark-theme] .mcp-modal{box-shadow:0 12px 48px rgba(0,0,0,.5)}'
         + '@keyframes mcpFadeIn{from{opacity:0}to{opacity:1}}'
         + '@keyframes mcpSlideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}';
+    }
+
+    function injectUiCss() {
       var el = document.createElement('style');
       el.setAttribute('data-plugin', 'dsh-mcp-manager-ui');
-      el.textContent = css;
+      el.textContent = buildUiCss();
       document.head.appendChild(el);
       return el;
     }
@@ -613,7 +631,7 @@ window.__ModuleLoader__.load({
           ),
           e('div', { style: S.field },
             e('label', { htmlFor: 'mcp-f-transport', style: S.label }, '传输方式'),
-            e('select', { id: 'mcp-f-transport', className: 'mcp-input', style: S.input, value: f.transport, onChange: set('transport') },
+            e('select', { id: 'mcp-f-transport', className: 'mcp-input mcp-select', style: S.input, value: f.transport, onChange: set('transport') },
               e('option', { value: 'stdio' }, 'stdio（本地命令）'),
               e('option', { value: 'streamable-http' }, 'streamable-http（远程 URL）'),
             ),
@@ -852,11 +870,12 @@ window.__ModuleLoader__.load({
     }
     exports.apply = apply;
     exports.inject = inject;
-    // 仅供 test/client.selftest.mjs 使用的测试钩子：绕开 DOM，直接验证 settings 通道。
+    // 仅供 test/client.selftest.mjs 使用的测试钩子：绕开 DOM，验证 settings 通道与注入的 CSS。
     exports.__test = {
       setRemote: function (value) { remote = value; },
       readNamespace: readNamespace,
       saveServers: saveServers,
+      buildUiCss: buildUiCss,
     };
     return module.exports;
   },
