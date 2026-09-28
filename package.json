@@ -1,7 +1,7 @@
 {
   "name": "@fishlikewater/dsh-mcp-manager",
   "version": "0.3.3",
-  "description": "MCP 服务器管理器：在 DSH 设置页配置 MCP 服务器（写在本条目的 config.servers），宿主按配置挂载/卸载 mcp-client 实例",
+  "description": "在 DSH 设置页里管理 MCP 服务器，保存即挂载或卸载 mcp-client 实例",
   "type": "module",
   "main": "index.js",
   "publishConfig": {

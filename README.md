@@ -19,32 +19,18 @@ DSH 原生要在 profile 的 `cordis.patch.yml` 里手写 `@deepseek-ai/dsh-mcp-
 
 ### 桌面版
 
-桌面版用应用自带的 profile，路径是 `$DSH_HOME/profiles/desktop`（`$DSH_HOME` 默认是 `~/.dsh`，Windows 上是 `C:\Users\<你>\.dsh`）。它由应用直接加载，不出现在 CLI 的 profile 列表里，只能进目录手动装。
+桌面版用应用自带的 profile，路径是 `$DSH_HOME/profiles/desktop`（`$DSH_HOME` 默认是 `~/.dsh`，Windows 上是 `C:\Users\<你>\.dsh`）。它由应用直接加载，不在 CLI 的 profile 列表里，但 `dsh plugin --profile desktop` 照样认得 —— 那个 `--profile` 就是指向 `$DSH_HOME/profiles/<名字>`。
 
-1. 编辑该目录的 `package.json`，加依赖和 bundle：
+**在侧栏的「插件」页里装**（推荐）。打开「插件」→「添加插件」，填包名、tgz 的绝对路径或者 Git 地址，点「安装」，装完选「立即启用」。对话框里说的「包名」就是下面命令里 `add` 后面那一段；安装失败时页面会给出原因和重试。
 
-   ```json
-   {
-     "dependencies": {
-       "@fishlikewater/dsh-mcp-manager": "file:fishlikewater-dsh-mcp-manager-0.3.3.tgz"
-     },
-     "dsh": {
-       "profile": {
-         "bundles": [
-           "@deepseek-ai/dsh-base",
-           "@deepseek-ai/dsh-web-app",
-           "@fishlikewater/dsh-mcp-manager"
-         ]
-       }
-     }
-   }
-   ```
+**或者命令行走一遍**：
 
-2. 在同一目录执行 `pnpm install`。该 profile 的 `pnpm-workspace.yaml` 固定了 `nodeLinker: hoisted` 和 `autoInstallPeers: false`。
+```sh
+dsh plugin --profile desktop add @fishlikewater/dsh-mcp-manager
+dsh plugin --profile desktop add D:\downloads\fishlikewater-dsh-mcp-manager-0.3.3.tgz
+```
 
-3. 重启桌面版。bundle 层只在启动时组合，不重启看不到条目。
-
-4. 到「设置 → 插件」确认没被版本门禁拦下，然后打开「设置 → MCP 服务器」。
+两条路做完的是同样两件事：在 profile 目录里跑 pnpm，再按已装状态把声明了 `dsh.bundle` 的包补进 `dsh.profile.bundles`。装完都要重启桌面版，bundle 层只在启动时组合。重启后打开「设置 → MCP 服务器」；条目没出现就是被版本门禁拦下了，见「版本兼容」。
 
 用 `link:` 指向本仓库时，Node 会从插件目录往上找 `@deepseek-ai/*`，可能命中仓库 `node_modules` 里的旧版本。用 tgz 或 npm 包安装可以避开。
 
@@ -114,7 +100,7 @@ DSH 在导入插件前会用运行中的版本检查它的 `peerDependencies`，
 
 别写死版本枚举。`0.1.0-rc.6 || 0.1.1-rc.2 || 0.1.7-rc.2` 这种写法在 semver 的默认规则下才精确，而 DSH 用的是 `includePrerelease`，枚举反而会漏掉没列出的版本，比如 CLI 侧的 `0.1.2-rc.1`。`>=0.1.0-rc.6 <0.2.0` 也不行，上界会被预发布穿透，连 `0.2.0-rc.1` 都放行。
 
-被门禁拦下时，可以在 `profiles/<profile>/compatibility.json` 里为「包名@版本 × 运行时版本」写一条豁免，由「设置 → 插件」的授权流程管理。豁免按精确版本记录，插件升级或 DSH 升级都不继承。
+被门禁拦下时，可以在 `profiles/<profile>/compatibility.json` 里为「包名@版本 × 运行时版本」写一条豁免，由插件管理器的授权流程管理。豁免按精确版本记录，插件升级或 DSH 升级都不继承。
 
 ## 工作原理
 
@@ -150,7 +136,7 @@ volatile fields require a fixed object path without an enclosing volatile field
 
 | 现象 | 排查方向 |
 |---|---|
-| 设置里没有「MCP 服务器」 | 插件不在该 profile 的 bundles 里，或被版本门禁拒绝。看「设置 → 插件」和启动时的 stderr |
+| 设置里没有「MCP 服务器」 | 插件不在该 profile 的 bundles 里，或被版本门禁拒绝。看侧栏「插件」页和启动时的 stderr |
 | 「没有找到 mcp-manager 配置命名空间」 | 条目 id 不是 `mcp-manager`、条目没被加载，或宿主半的 `Config` 里没有 volatile 字段（0.3.2 之前） |
 | 保存被拒绝，页面像只读 | `config.servers` 被更外层的 patch 覆盖，通常是写在了 `$DSH_HOME/cordis.patch.yml` |
 | 「配置已被其他写入方改动」 | revision 冲突。页面每 5 秒会自己刷新，重试即可 |
@@ -158,6 +144,7 @@ volatile fields require a fixed object path without an enclosing volatile field
 | 工具列表里没有 `mcp__*` | 该台 `enabled: false`、config 校验失败，或 MCP 服务器自己连不上。在宿主日志里搜 `[dsh-mcp-manager]` 和 `mcp-client(` |
 | 提示无法加载 `@deepseek-ai/dsh-mcp-client` | 该 profile 的 runtime 解析拦截没生效，或这个包不在运行时里 |
 | 保存后 patch 文件被重排、注释消失 | 设置页按 schema 重写文件，属正常行为 |
+| 安装命令跑不通 | 手工兜底：在 profile 的 `package.json` 里加依赖、把包名加进 `dsh.profile.bundles`，再 `pnpm install` |
 
 ## 开发
 

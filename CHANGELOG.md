@@ -8,6 +8,8 @@
 
 - `@deepseek-ai/dsh-mcp-client` 的 peer 范围由版本枚举改为 `^0.1.0-rc.6`。DSH 的兼容门禁用 `includePrerelease` 匹配，caret 范围能覆盖将来所有 `0.1.x`（含预发布）；枚举会漏掉没列出的版本，例如 CLI 侧的 `0.1.2-rc.1`
 - `@deepseek-ai/cordis` 的 peer 范围由 `^4.0.1` 收紧到 `^4.0.2`，与当前运行时一致
+- 桌面版的安装说明改为走侧栏「插件」页或 `dsh plugin --profile desktop add`，不再要求手改 `package.json`。`dsh plugin` 会在 pnpm 之后按已装状态调和 `dsh.profile.bundles`，桌面版 profile 同样认得
+- 精简 `description`：它同时用在插件管理器的安装确认和卡片上
 
 ## 0.3.2 - 2026-09-28
 
