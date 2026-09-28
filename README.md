@@ -28,7 +28,7 @@ DSH 原生要在 profile 的 `cordis.patch.yml` 里手写 `@deepseek-ai/dsh-mcp-
 
 ```sh
 dsh plugin --profile desktop add @fishlikewater/dsh-mcp-manager
-dsh plugin --profile desktop add D:\downloads\fishlikewater-dsh-mcp-manager-0.3.5.tgz
+dsh plugin --profile desktop add D:\downloads\fishlikewater-dsh-mcp-manager-0.4.0.tgz
 ```
 
 两条路做完的是同样两件事：在 profile 目录里跑 pnpm，再按已装状态把声明了 `dsh.bundle` 的包补进 `dsh.profile.bundles`。装完都要重启桌面版，bundle 层只在启动时组合。重启后打开「设置 → MCP 服务器」；条目没出现就是被版本门禁拦下了，见「版本兼容」。
@@ -149,7 +149,7 @@ volatile fields require a fixed object path without an enclosing volatile field
 | 现象 | 排查方向 |
 |---|---|
 | 设置里没有「MCP 服务器」 | 插件不在该 profile 的 bundles 里，或被版本门禁拒绝。看侧栏「插件」页和启动时的 stderr |
-| 「没有找到 mcp-manager 配置命名空间」 | 条目 id 不是 `mcp-manager`、条目没被加载，或宿主半的 `Config` 里没有 volatile 字段（0.3.2 之前） |
+| 「没有找到 mcp-manager 配置命名空间」 | 条目 id 不是 `mcp-manager`、条目没被加载，或宿主半的 `Config` 里没有 volatile 字段（0.4.0 之前） |
 | 保存被拒绝，页面像只读 | `config.servers` 被更外层的 patch 覆盖，通常是写在了 `$DSH_HOME/cordis.patch.yml` |
 | 「配置已被其他写入方改动」 | revision 冲突。页面每 5 秒会自己刷新，重试即可 |
 | 换了新版但行为没变 | `index.js` 和 `client.js` 的改动要重启 DSH；config 和 patch 的改动会热生效 |

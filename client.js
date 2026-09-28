@@ -5,7 +5,7 @@
 // （id: mcp-manager）的 config.servers：列出、新增、编辑、删除 MCP 服务器。
 // 写配置 → 宿主重载该条目 → 按新配置挂载 mcp-client 实例，改动即时生效。
 //
-// 0.3.1 修正：官方 settings 通道是客户端 Remote 命名空间 ctx.remote.settings
+// 0.4.0 修正：官方 settings 通道是客户端 Remote 命名空间 ctx.remote.settings
 // （inject 需声明 remote 与 remote.settings；0.3.0 误用的 connection.api.settings 并不存在），
 // 应答为直接的 { ok: true, value } / { ok: false, error }，写入签名是
 // mutate(ns, ops, expectedRevision) 三个位置参数。
@@ -55,27 +55,27 @@ window.__ModuleLoader__.load({
       head: { display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' },
       headText: { display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 260 },
       title: { margin: 0, fontSize: 16, fontWeight: 500, lineHeight: '24px', color: 'var(--dsw-alias-label-primary)' },
-      intro: { margin: 0, fontSize: 13, lineHeight: '20px', color: 'var(--dsw-alias-label-tertiary)' },
+      intro: { margin: 0, fontSize: 14, lineHeight: '22px', color: 'var(--dsw-alias-label-tertiary)' },
       error: { margin: 0, fontSize: 12, lineHeight: '18px', color: 'var(--dsw-alias-state-error-primary)' },
       ok: { margin: 0, fontSize: 12, lineHeight: '18px', color: 'var(--dsw-alias-state-success-primary)' },
-      card: { border: '1px solid var(--dsw-alias-border-l2)', borderRadius: 12, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 8 },
+      card: { border: '.5px solid var(--dsw-alias-settings-card-stroke,var(--dsw-alias-border-l2))', background: 'var(--dsw-alias-settings-card-fill,transparent)', borderRadius: 'var(--dsw-radius-xl,20px)', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 12 },
       rowHead: { display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 },
       rowName: { fontSize: 14, fontWeight: 500, lineHeight: '22px', color: 'var(--dsw-alias-label-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
       rowNameOff: { color: 'var(--dsw-alias-label-tertiary)' },
-      tag: { border: '1px solid var(--dsw-alias-border-l3)', color: 'var(--dsw-alias-label-secondary)', borderRadius: 4, padding: '1px 6px', fontSize: 11, lineHeight: '16px', flex: 'none' },
+      tag: { border: '.5px solid var(--dsw-alias-border-l3)', color: 'var(--dsw-alias-label-secondary)', borderRadius: 'var(--dsw-radius-xs,4px)', padding: '1px 6px', fontSize: 11, lineHeight: '16px', flex: 'none' },
       detail: { fontSize: 12, lineHeight: '18px', color: 'var(--dsw-alias-label-tertiary)', wordBreak: 'break-all' },
       statusLine: { fontSize: 12, lineHeight: '18px', display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto', flex: 'none' },
       dot: { width: 8, height: 8, borderRadius: '50%', display: 'inline-block', flex: 'none' },
       actions: { display: 'flex', gap: 8, marginTop: 2, alignItems: 'center', flexWrap: 'wrap' },
-      label: { fontSize: 12, lineHeight: '18px', color: 'var(--dsw-alias-label-secondary)', display: 'block', marginBottom: 4 },
-      field: { display: 'flex', flexDirection: 'column', gap: 2 },
+      label: { fontSize: 12, fontWeight: 500, lineHeight: '18px', color: 'var(--dsw-alias-label-secondary)', display: 'block', marginBottom: 4 },
+      field: { display: 'flex', flexDirection: 'column', gap: 6 },
       fieldError: { margin: 0, fontSize: 12, lineHeight: '16px', color: 'var(--dsw-alias-state-error-primary)' },
-      hint: { margin: 0, fontSize: 12, lineHeight: '16px', color: 'var(--dsw-alias-label-tertiary)' },
-      code: { fontFamily: 'var(--dsw-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace)', background: 'rgba(128,128,128,.12)', borderRadius: 4, padding: '1px 5px', fontSize: 11 },
-      input: { boxSizing: 'border-box', width: '100%', height: 32, borderRadius: 8, border: '1px solid var(--dsw-alias-border-l2)', background: 'transparent', color: 'var(--dsw-alias-label-primary)', padding: '0 10px', fontSize: 13, fontFamily: 'inherit' },
-      textarea: { boxSizing: 'border-box', width: '100%', minHeight: 56, borderRadius: 8, border: '1px solid var(--dsw-alias-border-l2)', background: 'transparent', color: 'var(--dsw-alias-label-primary)', padding: '6px 10px', fontSize: 12, fontFamily: 'inherit', resize: 'vertical' },
-      empty: { border: '1px dashed var(--dsw-alias-border-l3)', borderRadius: 12, padding: '28px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, textAlign: 'center' },
-      formBody: { display: 'flex', flexDirection: 'column', gap: 10 },
+      hint: { margin: 0, fontSize: 12, lineHeight: '18px', color: 'var(--dsw-alias-label-tertiary)' },
+      code: { fontFamily: 'var(--ds-font-family-code, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace)', background: 'rgba(128,128,128,.12)', borderRadius: 'var(--dsw-radius-xs,4px)', padding: '1px 5px', fontSize: 11 },
+      input: { boxSizing: 'border-box', width: '100%', height: 32, borderRadius: 'var(--dsw-radius-sm,8px)', border: '.5px solid var(--dsw-alias-border-l4)', background: 'var(--dsw-alias-bg-base,transparent)', color: 'var(--dsw-alias-label-primary)', padding: '0 10px', fontSize: 13, fontFamily: 'inherit' },
+      textarea: { boxSizing: 'border-box', width: '100%', minHeight: 56, borderRadius: 'var(--dsw-radius-sm,8px)', border: '.5px solid var(--dsw-alias-border-l4)', background: 'var(--dsw-alias-bg-base,transparent)', color: 'var(--dsw-alias-label-primary)', padding: '6px 10px', fontSize: 13, fontFamily: 'inherit', resize: 'vertical' },
+      empty: { border: '1px dashed var(--dsw-alias-border-l3)', borderRadius: 'var(--dsw-radius-lg,16px)', padding: '28px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, textAlign: 'center' },
+      formBody: { display: 'flex', flexDirection: 'column', gap: 14, background: 'var(--dsw-alias-bg-module-platform,var(--dsw-alias-bg-layer-2))', borderRadius: 'var(--dsw-radius-lg,16px)', padding: '14px 16px' },
     };
 
     // ── css injection ───────────────────────────────────────────────────────
@@ -97,22 +97,28 @@ window.__ModuleLoader__.load({
     // CSS 拼装单独成一个纯函数：不碰 DOM，自测才能直接断言主题跟随规则。
     function buildUiCss() {
       return ''
-        // 按钮
-        + '.mcp-btn{height:32px;padding:0 14px;border-radius:16px;border:none;cursor:pointer;font-size:13px;line-height:20px;display:inline-flex;align-items:center;gap:4px;font-family:inherit;transition:filter .12s ease,background-color .12s ease,border-color .12s ease,opacity .12s ease}'
-        + '.mcp-btn:hover{filter:brightness(1.08)}'
-        + '.mcp-btn:active{filter:brightness(.94)}'
-        + '.mcp-btn:focus-visible{outline:2px solid var(--dsw-alias-state-info-primary,var(--dsw-alias-button-primary-fill));outline-offset:2px}'
-        + '.mcp-btn:disabled{opacity:.5;cursor:not-allowed;filter:none}'
-        + '.mcp-btn-primary{background:var(--dsw-alias-button-primary-fill);color:var(--dsw-alias-label-primary-foreground,#fff)}'
-        + '.mcp-btn-ghost{background:transparent;color:var(--dsw-alias-label-secondary);border:1px solid var(--dsw-alias-border-l3)}'
-        + '.mcp-btn-danger{background:transparent;color:var(--dsw-alias-state-error-primary);border:1px solid var(--dsw-alias-state-error-primary)}'
-        + '.mcp-btn-danger-solid{background:var(--dsw-alias-state-error-primary);color:var(--dsw-alias-label-primary-foreground,#fff);border:1px solid var(--dsw-alias-state-error-primary)}'
+        // 按钮：尺寸、圆角、边框宽度照抄外壳设置页的描边按钮（36px 高、radius-md、
+        // .5px 边框），配色一律走 alias token。ghost 的文字色是 label-primary，
+        // 不是 label-secondary；hover 用外壳定义的 ghost 高亮填充，不用 filter 硬算。
+        + '.mcp-btn{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:4px;height:36px;min-width:58px;padding:0 14px;border:.5px solid transparent;border-radius:var(--dsw-radius-md);cursor:pointer;font-family:inherit;font-size:14px;line-height:22px;white-space:nowrap;transition:background-color .15s ease,border-color .15s ease,color .15s ease,opacity .15s ease}'
+        + '.mcp-btn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}'
+        + '.mcp-btn:disabled{opacity:.5;cursor:not-allowed}'
+        + '.mcp-btn-primary{background:var(--dsw-alias-button-primary-fill);color:var(--dsw-alias-label-primary-foreground,#fff);font-weight:500}'
+        + '.mcp-btn-primary:not(:disabled):hover{background:var(--dsw-alias-button-primary-hover,var(--dsw-alias-button-primary-fill))}'
+        + '.mcp-btn-ghost{background:transparent;color:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-border-l3)}'
+        + '.mcp-btn-ghost:not(:disabled):hover{background:var(--dsw-alias-button-ghost-active-fill);border-color:var(--dsw-alias-button-ghost-active-border,var(--dsw-alias-border-l3))}'
+        + '.mcp-btn-danger{background:transparent;color:var(--dsw-alias-state-error-primary);border-color:var(--dsw-alias-state-error-primary)}'
+        + '.mcp-btn-danger:not(:disabled):hover{background:var(--dsw-alias-button-ghost-active-fill)}'
+        + '.mcp-btn-danger-solid{background:var(--dsw-alias-state-error-primary);color:var(--dsw-alias-label-primary-foreground,#fff);border-color:var(--dsw-alias-state-error-primary)}'
+        // 行内小按钮：外壳的 danger / link 按钮是 28px 高、radius-sm、12px 字。
+        // 双类名提高特异性，免得被上面的基础尺寸压回去。
+        + '.mcp-btn.mcp-btn-sm{height:28px;min-width:0;padding:0 10px;font-size:12px;line-height:18px;border-radius:var(--dsw-radius-sm,8px)}'
         // 卡片
         + '.mcp-card{transition:border-color .15s ease}'
         + '.mcp-card:hover{border-color:var(--dsw-alias-border-l3)}'
         + '.mcp-card-error{border-color:var(--dsw-alias-state-error-primary)}'
         // 输入框
-        + '.mcp-input:focus,.mcp-textarea:focus{outline:none;border-color:var(--dsw-alias-state-info-primary,var(--dsw-alias-button-primary-fill))}'
+        + '.mcp-input:focus,.mcp-textarea:focus{outline:none;border-color:var(--dsw-alias-brand-primary)}'
         + '.mcp-input-invalid,.mcp-input-invalid:focus{border-color:var(--dsw-alias-state-error-primary)}'
         + '.mcp-input::placeholder,.mcp-textarea::placeholder{color:var(--dsw-alias-label-tertiary)}'
         + '.mcp-input:disabled,.mcp-textarea:disabled,.mcp-select:disabled{opacity:.5;cursor:not-allowed}'
@@ -124,11 +130,11 @@ window.__ModuleLoader__.load({
         + 'body[data-ds-dark-theme] .mcp-select option,html[data-ds-dark-theme] .mcp-select option{background:var(--dsw-alias-bg-layer-2,#1f1f1f)}'
         // 开关
         + '.mcp-switch{position:relative;width:34px;height:18px;border-radius:9px;border:1px solid var(--dsw-alias-border-l3);background:transparent;cursor:pointer;padding:0;box-sizing:border-box;transition:background-color .15s ease,border-color .15s ease;flex:none}'
-        + '.mcp-switch:hover{border-color:var(--dsw-alias-label-secondary)}'
+        + '.mcp-switch:hover{border-color:var(--dsw-alias-border-l4)}'
         + '.mcp-switch-on{background:var(--dsw-alias-button-primary-fill);border-color:transparent}'
-        + '.mcp-switch-on:hover{border-color:transparent;filter:brightness(1.08)}'
+        + '.mcp-switch-on:hover{border-color:transparent;background:var(--dsw-alias-button-primary-hover)}'
         + '.mcp-switch:disabled{opacity:.5;cursor:not-allowed}'
-        + '.mcp-switch:focus-visible{outline:2px solid var(--dsw-alias-state-info-primary,var(--dsw-alias-button-primary-fill));outline-offset:2px}'
+        + '.mcp-switch:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}'
         + '.mcp-switch-thumb{position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:var(--dsw-alias-label-secondary);transition:left .15s ease,background-color .15s ease;pointer-events:none}'
         + '.mcp-switch-on .mcp-switch-thumb{left:18px;background:var(--dsw-alias-label-primary-foreground,#fff)}'
         // 骨架 / 状态点
@@ -139,7 +145,7 @@ window.__ModuleLoader__.load({
         // 弹层（遮罩用外壳的 bg-mask-3 token，面板用 layer-2 浮层背景）
         + '.mcp-modal-mask{position:fixed;inset:0;background:var(--dsw-alias-bg-mask-3);display:flex;padding:24px 16px;overflow-y:auto;z-index:1000;animation:mcpFadeIn .15s ease}'
         // margin:auto —— 面板矮于视口时完全居中；超高时自动贴顶且遮罩可滚动（避免顶部被裁）
-        + '.mcp-modal{background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l2);border-radius:16px;box-shadow:0 12px 48px rgba(0,0,0,.18);width:640px;max-width:100%;padding:20px;margin:auto;animation:mcpSlideUp .18s ease}'
+        + '.mcp-modal{background:var(--dsw-alias-bg-layer-2);border:.5px solid var(--dsw-alias-border-l3);border-radius:var(--dsw-radius-panel,28px);box-shadow:0 12px 48px rgba(0,0,0,.18);width:640px;max-width:100%;padding:20px;margin:auto;animation:mcpSlideUp .18s ease}'
         // 投影在浅色下要压住白底，暗色下要靠更重的黑才看得出浮层
         + 'body[data-ds-dark-theme] .mcp-modal,html[data-ds-dark-theme] .mcp-modal{box-shadow:0 12px 48px rgba(0,0,0,.5)}'
         + '@keyframes mcpFadeIn{from{opacity:0}to{opacity:1}}'
@@ -373,7 +379,7 @@ window.__ModuleLoader__.load({
     function Button(props) {
       return e('button', {
         type: props.type || 'button',
-        className: 'mcp-btn mcp-btn-' + (props.variant || 'ghost'),
+        className: 'mcp-btn mcp-btn-' + (props.variant || 'ghost') + (props.size === 'sm' ? ' mcp-btn-sm' : ''),
         disabled: props.disabled,
         onClick: props.onClick,
         title: props.title,
@@ -441,18 +447,23 @@ window.__ModuleLoader__.load({
           ? e('p', { style: S.error }, status.message)
           : null,
         e('div', { style: S.actions },
-          e(Button, { variant: 'ghost', disabled: busy, onClick: function () { props.onEdit(server); } }, '编辑'),
+          e(Button, { variant: 'ghost', size: 'sm', disabled: busy, onClick: function () { props.onEdit(server); } }, '编辑'),
           confirming
             ? e(Button, {
                 variant: 'danger-solid',
+                size: 'sm',
                 disabled: busy,
                 onClick: function () { props.onConfirmDelete(server); },
               }, deleting ? '删除中…' : '确认删除？')
             : e(Button, {
                 variant: 'danger',
+                size: 'sm',
                 disabled: busy,
                 onClick: function () { props.onAskDelete(server); },
               }, deleting ? '删除中…' : '删除'),
+          confirming
+            ? e(Button, { variant: 'ghost', size: 'sm', disabled: busy, onClick: props.onCancelDelete }, '取消')
+            : null,
           confirming
             ? e(Button, { variant: 'ghost', disabled: busy, onClick: props.onCancelDelete }, '取消')
             : null,
@@ -462,9 +473,9 @@ window.__ModuleLoader__.load({
 
     function SkeletonCard() {
       return e('div', { className: 'mcp-card mcp-skeleton', style: S.card },
-        e('div', { style: { height: 18, width: '36%', borderRadius: 6, background: 'var(--dsw-alias-border-l2)' } }),
-        e('div', { style: { height: 12, width: '72%', borderRadius: 6, background: 'var(--dsw-alias-border-l2)' } }),
-        e('div', { style: { height: 32, width: 180, borderRadius: 16, background: 'var(--dsw-alias-border-l2)' } }),
+        e('div', { style: { height: 18, width: '36%', borderRadius: 6, background: 'var(--dsw-alias-bg-skeleton,var(--dsw-alias-border-l2))' } }),
+        e('div', { style: { height: 12, width: '72%', borderRadius: 6, background: 'var(--dsw-alias-bg-skeleton,var(--dsw-alias-border-l2))' } }),
+        e('div', { style: { height: 36, width: 180, borderRadius: 'var(--dsw-radius-md,12px)', background: 'var(--dsw-alias-bg-skeleton,var(--dsw-alias-border-l2))' } }),
       );
     }
 
@@ -600,7 +611,7 @@ window.__ModuleLoader__.load({
       return e('form', { onSubmit: submit, noValidate: true },
         e('div', { style: S.formBody },
           e('div', { style: { display: 'flex', alignItems: 'flex-start', gap: 8 } },
-            e('div', { style: { display: 'flex', flexDirection: 'column', gap: 2, flex: 1, minWidth: 0 } },
+            e('div', { style: { display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minWidth: 0 } },
               e('span', { style: { fontSize: 14, fontWeight: 500, lineHeight: '22px', color: 'var(--dsw-alias-label-primary)' } },
                 initial.serverName ? '编辑 ' + initial.serverName : '添加服务器'),
               initial.serverName
@@ -609,10 +620,10 @@ window.__ModuleLoader__.load({
             ),
             e(Button, {
               variant: 'ghost',
+              size: 'sm',
               title: '关闭',
               'aria-label': '关闭',
               onClick: props.onCancel,
-              style: { padding: '0 8px', minWidth: 28, height: 28, borderRadius: 8, flex: 'none' },
             }, '✕'),
           ),
           e('div', { style: S.field },
@@ -870,12 +881,13 @@ window.__ModuleLoader__.load({
     }
     exports.apply = apply;
     exports.inject = inject;
-    // 仅供 test/client.selftest.mjs 使用的测试钩子：绕开 DOM，验证 settings 通道与注入的 CSS。
+    // 仅供 test/client.selftest.mjs 使用的测试钩子：绕开 DOM，验证 settings 通道、注入的 CSS 与内联样式表。
     exports.__test = {
       setRemote: function (value) { remote = value; },
       readNamespace: readNamespace,
       saveServers: saveServers,
       buildUiCss: buildUiCss,
+      styles: S,
     };
     return module.exports;
   },

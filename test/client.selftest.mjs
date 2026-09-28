@@ -175,8 +175,8 @@ try {
   ok('其它拒绝码原样抛出宿主消息 → ' + error.message, error.message === '该部署只读');
 }
 
-// ── H. 注入 CSS 的主题跟随 ───────────────────────────────────────────────────
-console.log('\nH. 注入 CSS 的主题跟随');
+// ── H. 注入 CSS 与内联样式的主题跟随 ─────────────────────────────────────────
+console.log('\nH. 注入 CSS 与内联样式的主题跟随');
 const uiCss = t.buildUiCss();
 ok('.mcp-select 显式声明亮色 color-scheme', /\.mcp-select\{color-scheme:light\}/.test(uiCss));
 ok('body 上的暗色标记把下拉框切到 dark', /body\[data-ds-dark-theme\] \.mcp-select[^{]*\{color-scheme:dark\}/.test(uiCss));
@@ -186,6 +186,31 @@ ok('候选列表在暗色下有独立背景', /body\[data-ds-dark-theme\] \.mcp-
 ok('弹层投影分主题', /body\[data-ds-dark-theme\] \.mcp-modal[^{]*\{box-shadow/.test(uiCss));
 ok('placeholder 走三级文字色', /\.mcp-input::placeholder,\.mcp-textarea::placeholder\{color:var\(--dsw-alias-label-tertiary\)\}/.test(uiCss));
 ok('没有漏拼的模板占位', !/\$\{/.test(uiCss));
+
+// 按钮尺寸、圆角、边框照外壳设置页的规则，hover 走 alias token 而不是 filter。
+ok('按钮边框是 .5px 且圆角走 radius-md', /\.mcp-btn\{[^}]*border:\.5px solid transparent[^}]*border-radius:var\(--dsw-radius-md\)/.test(uiCss));
+ok('主按钮用一级文字反色', /\.mcp-btn-primary\{background:var\(--dsw-alias-button-primary-fill\);color:var\(--dsw-alias-label-primary-foreground/.test(uiCss));
+ok('主按钮 hover 换 token', /\.mcp-btn-primary:not\(:disabled\):hover\{background:var\(--dsw-alias-button-primary-hover/.test(uiCss));
+ok('ghost 文字色是一级而非二级', /\.mcp-btn-ghost\{background:transparent;color:var\(--dsw-alias-label-primary\)/.test(uiCss));
+ok('ghost hover 用外壳的 ghost 高亮填充', /\.mcp-btn-ghost:not\(:disabled\):hover\{background:var\(--dsw-alias-button-ghost-active-fill\)/.test(uiCss));
+ok('行内小按钮 28px 高', /\.mcp-btn\.mcp-btn-sm\{height:28px/.test(uiCss));
+ok('按钮不再用 filter 算 hover', !/\.mcp-btn:hover\{filter/.test(uiCss));
+ok('按钮不再写死胶囊圆角', !/border-radius:16px/.test(uiCss));
+ok('开关提亮也走 token 而非 filter', !/\.mcp-switch-on:hover\{[^}]*filter/.test(uiCss));
+
+// 内联样式表：卡片、编辑区、输入框的底色与边框对齐外壳。
+const st = t.styles;
+ok('卡片用 settings-card 描边与底色', /settings-card-stroke/.test(st.card.border) && /settings-card-fill/.test(st.card.background));
+ok('卡片圆角走 radius-xl', /--dsw-radius-xl/.test(st.card.borderRadius));
+ok('输入框边框是 .5px 的 border-l4', st.input.border === '.5px solid var(--dsw-alias-border-l4)');
+ok('输入框底色走 bg-base', /--dsw-alias-bg-base/.test(st.input.background));
+ok('文本域边框与输入框一致', st.textarea.border === '.5px solid var(--dsw-alias-border-l4)');
+ok('字段标签是 500 字重', st.label.fontWeight === 500);
+ok('字段内间距 6', st.field.gap === 6);
+ok('编辑区底色走 bg-module-platform', /--dsw-alias-bg-module-platform/.test(st.formBody.background));
+ok('标签边框是 .5px', /^\.5px solid/.test(st.tag.border));
+ok('说明文字行高 18', st.hint.lineHeight === '18px');
+ok('章节说明字号 14', st.intro.fontSize === 14);
 
 // ── 汇总 ────────────────────────────────────────────────────────────────────
 console.log('\n通过 ' + pass + ' 项，失败 ' + fail + ' 项');

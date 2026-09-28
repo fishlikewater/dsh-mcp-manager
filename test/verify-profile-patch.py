@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""校验 0.3.2 的配置迁移。
+"""校验 0.4.0 的配置迁移。
 
 断言三件事：
   1. $DSH_HOME/cordis.patch.yml（机器级 patch）已清空 —— 否则设置页保存会被拒绝；
