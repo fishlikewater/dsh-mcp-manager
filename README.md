@@ -4,7 +4,7 @@
 
 DSH 原生要在 profile 的 `cordis.patch.yml` 里手写 `@deepseek-ai/dsh-mcp-client` 条目。这个插件把它搬到界面上：填表单、保存，实例随之挂载或卸载，不用改文件、不用重启。模型立刻拿到或失去 `mcp__<名称>__<工具名>` 形式的工具。
 
-支持 DSH 0.1.7-rc.2 及以后，包含桌面版。0.3.0 起配置不再写进 `settings.yaml`，而是本插件 Loader 条目的 `config.servers`。
+支持 DSH 0.1.7-rc.2 到 0.2.x，包含桌面版。0.3.0 起配置不再写进 `settings.yaml`，而是本插件 Loader 条目的 `config.servers`。
 
 ## 特性
 
@@ -32,6 +32,20 @@ dsh plugin --profile desktop add D:\downloads\fishlikewater-dsh-mcp-manager-0.4.
 ```
 
 两条路做完的是同样两件事：在 profile 目录里跑 pnpm，再按已装状态把声明了 `dsh.bundle` 的包补进 `dsh.profile.bundles`。装完都要重启桌面版，bundle 层只在启动时组合。重启后打开「设置 → MCP 服务器」；条目没出现就是被版本门禁拦下了，见「版本兼容」。
+
+PATH 上的 `dsh` 可能比桌面版自带的核心旧。检查一下：
+
+```sh
+dsh --version
+```
+
+如果低于桌面版的版本，改用应用目录里那个：
+
+```sh
+"D:\Program Files\DeepSeek Harness\resources\runtime\cli\bin\dsh.cmd" --version
+```
+
+两个都能装插件（都是往 profile 目录转发 pnpm），但只有和桌面版同版本的那个能拿 `--dump-config` 校验组合结果，也才能把版本门禁的判定还原成启动时的真实情况。
 
 用 `link:` 指向本仓库时，Node 会从插件目录往上找 `@deepseek-ai/*`，可能命中仓库 `node_modules` 里的旧版本。用 tgz 或 npm 包安装可以避开。
 
@@ -101,18 +115,28 @@ dsh --profile web --dump-config                          # 能看到 mcp-manager
 
 ## 版本兼容
 
-DSH 在导入插件前会用运行中的版本检查它的 `peerDependencies`，只看 `@deepseek-ai/dsh` 和 `@deepseek-ai/dsh-*` 这两类：
+DSH 在导入插件前会拿运行中的版本核对它的要求。判定规则在 0.2.0 前后换过一次：
 
-- 每个声明的范围都要匹配，预发布版本参与范围匹配
-- 没声明的不构成约束
-- 范围写法非法一律视为不兼容
-- `engines.dsh` 不参与判定
+- **0.2.0 起**：manifest 声明了 `engines.dsh`，就只看这一个范围，`peerDependencies` 里 `@deepseek-ai/dsh-*` 的部分一律忽略
+- **0.1.x**：没有 `engines.dsh`，逐个核对 `peerDependencies` 里 `@deepseek-ai/dsh` 和 `@deepseek-ai/dsh-*` 的范围
 
-本包声明 `@deepseek-ai/dsh-mcp-client: ^0.1.0-rc.6`。0.x 下 caret 锁 minor，在 DSH 的判定下它覆盖 `0.1.0-rc.6` 到 `0.1.x` 的所有版本，含预发布，但不会跨到 `0.2.0`。
+本包两边都声明，且指向同一个真实支持区间：
 
-别写死版本枚举。`0.1.0-rc.6 || 0.1.1-rc.2 || 0.1.7-rc.2` 这种写法在 semver 的默认规则下才精确，而 DSH 用的是 `includePrerelease`，枚举反而会漏掉没列出的版本，比如 CLI 侧的 `0.1.2-rc.1`。`>=0.1.0-rc.6 <0.2.0` 也不行，上界会被预发布穿透，连 `0.2.0-rc.1` 都放行。
+```json
+"engines": { "dsh": ">=0.1.7-rc.2 <0.3.0" },
+"peerDependencies": {
+  "@deepseek-ai/cordis": "^4.0.2",
+  "@deepseek-ai/dsh-mcp-client": ">=0.1.0-rc.6 <0.3.0"
+}
+```
 
-被门禁拦下时，可以在 `profiles/<profile>/compatibility.json` 里为「包名@版本 × 运行时版本」写一条豁免，由插件管理器的授权流程管理。豁免按精确版本记录，插件升级或 DSH 升级都不继承。
+下界 0.1.7-rc.2 是硬要求：settings 命名空间从这一版才有，再早的 DSH 里插件能加载，设置页却是空的。上界 0.3.0 留给下一个可能改配置契约的大版本。
+
+`@deepseek-ai/dsh-mcp-client` 单独放宽到 `>=0.1.0-rc.6 <0.3.0`。它跟着 DSH 在 0.2.0 跳到 0.2.1-rc.2，但 Config 契约没变 —— `serverName`、`transport`、`command`、`args`、`env`、`cwd`、`url`、`headers`、`failOnStartupError` 都还在，所以一条范围能盖住两条线。
+
+别写版本枚举，也别用 `>=0.1.0-rc.6 <0.2.0`。DSH 用 `includePrerelease` 匹配，枚举会漏掉没列出的版本，写死的上界则会把 `0.2.0-rc.1` 这类预发布放行。
+
+被门禁拦下的表现是插件根本不出现在组合里：桌面版启动日志把它列进 `skippedBundles`，`dsh --profile <名字> --dump-config` 的输出里也找不到 `mcp-manager` 这一行。可以在 `profiles/<profile>/compatibility.json` 里为「包名@版本 × 运行时版本」写一条豁免，由插件管理器的授权流程管理；豁免按精确版本记录，插件或 DSH 升级都不继承。
 
 ## 工作原理
 

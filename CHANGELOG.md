@@ -25,9 +25,10 @@
 
 ### 变更
 
+- 兼容 DSH 0.2.x。桌面版核心从 0.1.7-rc.2 升到 0.2.1-rc.2，`@deepseek-ai/dsh-mcp-client` 跟着跳到 0.2.1-rc.2。原来的 peer 范围 `^0.1.0-rc.6` 只覆盖 `0.1.x`，插件会被版本门禁静默跳过 —— 表现是设置页里没有「MCP 服务器」，而配置还好端端躺在 profile patch 里。现在声明 `engines.dsh: ">=0.1.7-rc.2 <0.3.0"`，并把 `dsh-mcp-client` 放宽到 `>=0.1.0-rc.6 <0.3.0`。0.2.0 起 DSH 只认 `engines.dsh`、忽略 peer，0.1.x 仍按 peer 判定，两边指向同一个区间。mcp-client 的 Config 契约没有变化，宿主侧代码不用动
 - `args`、`env`、`headers` 的值由 `string` 放宽为 `any`，挂载前统一字符串化。以前在 `env` 里写 `PORT: 8080` 会让整个条目的 config 校验失败，所有服务器一起挂不上
 - placeholder 改用 `--dsw-alias-label-tertiary`；弹层投影分主题，暗色下加重
-- `@deepseek-ai/dsh-mcp-client` 的 peer 范围由版本枚举改为 `^0.1.0-rc.6`。DSH 的兼容门禁用 `includePrerelease` 匹配，caret 范围能覆盖将来所有 `0.1.x`（含预发布）；枚举会漏掉没列出的版本，例如 CLI 侧的 `0.1.2-rc.1`
+- `@deepseek-ai/dsh-mcp-client` 的 peer 范围由版本枚举改为范围表达式。DSH 的兼容门禁用 `includePrerelease` 匹配，枚举会漏掉没列出的版本，例如 CLI 侧的 `0.1.2-rc.1`
 - `@deepseek-ai/cordis` 的 peer 范围由 `^4.0.1` 收紧到 `^4.0.2`，与当前运行时一致
 - `@deepseek-ai/schemastery` 由 `^3.18.1` 收紧到 `^3.18.4`。`.volatile()` 在 3.18.1 还不存在，装到旧版本会在加载时抛 `Schema.array(...).default(...).volatile is not a function`
 - 桌面版的安装说明改为走侧栏「插件」页或 `dsh plugin --profile desktop add`，不再要求手改 `package.json`。`dsh plugin` 会在 pnpm 之后按已装状态调和 `dsh.profile.bundles`
